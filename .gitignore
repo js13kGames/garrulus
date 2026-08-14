@@ -1,0 +1,11 @@
+.DS_Store
+.vscode/*.log
+
+node_modules
+*.js
+*.js.map
+*.pad.png
+play/index.*
+reference/*.html
+
+goodluck
