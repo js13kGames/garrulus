@@ -11,8 +11,10 @@
 
 import {instantiate} from "../lib/game.js";
 import {Game} from "./game.js";
-import {BREACH_LIMIT, DEATH_RADIUS} from "./game.js";
-import {ELEMENTS, TOP_TIER, blueprint_element} from "./scenes/blu_element.js";
+import {BREACH_LIMIT} from "./game.js";
+import {MODES} from "./modes.js";
+import {SCORES, TOP_TIER, blueprint_element} from "./scenes/blu_element.js";
+import {blueprint_star} from "./scenes/blu_star.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
 import {sys_game_over} from "./systems/sys_game_over.js";
 import {sys_merge} from "./systems/sys_merge.js";
@@ -61,7 +63,7 @@ function silent_audio() {
  * The cast goes through `unknown` on purpose: this object is deliberately not a
  * whole `Game`. It has no canvas and no loop.
  */
-function make_game(): Game {
+function make_game(mode = 0): Game {
     return {
         World: new World(64),
         Contacts: [],
@@ -74,6 +76,9 @@ function make_game(): Game {
         WinTime: 0,
         PlayState: "play",
         BestScore: 0,
+        RunTime: 0,
+        Mode: mode,
+        Tuning: MODES[mode],
         Audio: silent_audio(),
     } as unknown as Game;
 }
@@ -114,9 +119,9 @@ function step(game: Game, pull = false) {
 console.log("contacts");
 {
     let game = make_game();
-    let a = instantiate(game, blueprint_element(0, [0, 0], [0, 0]));
-    let b = instantiate(game, blueprint_element(0, [0.5, 0], [0, 0]));
-    let far = instantiate(game, blueprint_element(0, [5, 0], [0, 0]));
+    let a = instantiate(game, blueprint_element(game, 0, [0, 0], [0, 0]));
+    let b = instantiate(game, blueprint_element(game, 0, [0.5, 0], [0, 0]));
+    let far = instantiate(game, blueprint_element(game, 0, [5, 0], [0, 0]));
     sys_transform2d(game, STEP);
     sys_collide_circle(game, STEP);
     check(
@@ -136,8 +141,8 @@ console.log("solver");
     let game = make_game();
     // Two Sparkles almost on top of each other. Radius 0.45 each, so they must
     // end up about 0.9 apart.
-    let a = instantiate(game, blueprint_element(0, [0, 0], [0, 0]));
-    let b = instantiate(game, blueprint_element(0, [0.05, 0], [0, 0]));
+    let a = instantiate(game, blueprint_element(game, 0, [0, 0], [0, 0]));
+    let b = instantiate(game, blueprint_element(game, 0, [0.05, 0], [0, 0]));
     // Take the merge out of it; this test is about separation only.
     game.World.Merge[a].Cooldown = 999;
     game.World.Merge[b].Cooldown = 999;
@@ -145,7 +150,7 @@ console.log("solver");
         step(game);
     }
     let gap = distance(game, a, b);
-    let sum = ELEMENTS[0][0] * 2;
+    let sum = MODES[0].Radii[0] * 2;
     check("the solver pushes an overlap apart", gap > sum - 0.02, `gap ${gap.toFixed(4)}`);
     check("the solver does not overshoot", gap < sum + 0.02, `gap ${gap.toFixed(4)}`);
 }
@@ -153,8 +158,8 @@ console.log("solver");
 console.log("merge");
 {
     let game = make_game();
-    instantiate(game, blueprint_element(2, [0, 0], [0, 0]));
-    instantiate(game, blueprint_element(2, [0.9, 0], [0, 0]));
+    instantiate(game, blueprint_element(game, 2, [0, 0], [0, 0]));
+    instantiate(game, blueprint_element(game, 2, [0.9, 0], [0, 0]));
     step(game);
     check("two of one tier become one", count_elements(game) === 1, `got ${count_elements(game)}`);
 
@@ -167,17 +172,17 @@ console.log("merge");
     check("the survivor is one tier up", game.World.Merge[survivor].Tier === 3);
     check(
         "the collider grows to the new radius",
-        game.World.CollideCircle[survivor].Radius === ELEMENTS[3][0],
+        game.World.CollideCircle[survivor].Radius === MODES[0].Radii[3],
     );
     check(
         "the mass follows the new radius",
-        Math.abs(game.World.RigidBody2D[survivor].InverseMass - 1 / ELEMENTS[3][0] ** 2) < 1e-9,
+        Math.abs(game.World.RigidBody2D[survivor].InverseMass - 1 / MODES[0].Radii[3] ** 2) < 1e-9,
     );
     check(
         "the survivor sits between the two",
         Math.abs(game.World.LocalTransform2D[survivor].Translation[0] - 0.45) < 1e-9,
     );
-    check("the score is the score of the new tier", game.Score === ELEMENTS[3][1]);
+    check("the score is the score of the new tier", game.Score === SCORES[3]);
     check("the survivor pops", (game.World.Signature[survivor] & Has.AnimatePop) !== 0);
     check("a merge sets a freeze", game.HitStop > 0);
 }
@@ -185,14 +190,14 @@ console.log("merge");
 console.log("merge is refused");
 {
     let game = make_game();
-    instantiate(game, blueprint_element(1, [0, 0], [0, 0]));
-    instantiate(game, blueprint_element(2, [1, 0], [0, 0]));
+    instantiate(game, blueprint_element(game, 1, [0, 0], [0, 0]));
+    instantiate(game, blueprint_element(game, 2, [1, 0], [0, 0]));
     step(game);
     check("two different tiers do not merge", count_elements(game) === 2);
 
     let cooled = make_game();
-    let a = instantiate(cooled, blueprint_element(1, [0, 0], [0, 0]));
-    instantiate(cooled, blueprint_element(1, [0.8, 0], [0, 0]));
+    let a = instantiate(cooled, blueprint_element(cooled, 1, [0, 0], [0, 0]));
+    instantiate(cooled, blueprint_element(cooled, 1, [0.8, 0], [0, 0]));
     cooled.World.Merge[a].Cooldown = 1;
     step(cooled);
     check("a cooling element does not merge", count_elements(cooled) === 2);
@@ -201,12 +206,12 @@ console.log("merge is refused");
 console.log("win");
 {
     let game = make_game();
-    instantiate(game, blueprint_element(TOP_TIER, [0, 0], [0, 0]));
-    instantiate(game, blueprint_element(TOP_TIER, [4, 0], [0, 0]));
+    instantiate(game, blueprint_element(game, TOP_TIER, [0, 0], [0, 0]));
+    instantiate(game, blueprint_element(game, TOP_TIER, [4, 0], [0, 0]));
     step(game);
     check("two top elements cancel out", count_elements(game) === 0, `got ${count_elements(game)}`);
     check("the win is recorded", game.Won);
-    check("the win scores twice the tier", game.Score === ELEMENTS[TOP_TIER][1] * 2);
+    check("the win scores twice the tier", game.Score === SCORES[TOP_TIER] * 2);
 }
 
 console.log("game over");
@@ -214,7 +219,8 @@ console.log("game over");
     let game = make_game();
     // An element still falling in from the orbit circle is outside the death
     // ring, but it must not start the timer.
-    let falling = instantiate(game, blueprint_element(0, [DEATH_RADIUS + 1.5, 0], [0, 0]));
+    let death = MODES[0].DeathRadius;
+    let falling = instantiate(game, blueprint_element(game, 0, [death + 1.5, 0], [0, 0]));
     sys_transform2d(game, STEP);
     for (let i = 0; i < 60; i++) {
         sys_game_over(game, STEP);
@@ -227,7 +233,7 @@ console.log("game over");
     check("an element inside the ring arms itself", game.World.Merge[falling].Armed);
 
     // Push it back out. Now it counts.
-    game.World.LocalTransform2D[falling].Translation[0] = DEATH_RADIUS + 1;
+    game.World.LocalTransform2D[falling].Translation[0] = death + 1;
     for (let i = 0; i < 30; i++) {
         sys_game_over(game, STEP);
     }
@@ -243,7 +249,7 @@ console.log("game over");
     );
 
     // Hold it out until the run ends.
-    game.World.LocalTransform2D[falling].Translation[0] = DEATH_RADIUS + 1;
+    game.World.LocalTransform2D[falling].Translation[0] = death + 1;
     game.Score = 42;
     for (let i = 0; i < Math.ceil(BREACH_LIMIT / STEP) + 2; i++) {
         sys_game_over(game, STEP);
@@ -252,12 +258,140 @@ console.log("game over");
     check("the best score is kept", game.BestScore === 42);
 }
 
+console.log("modes: bumps");
+{
+    // Mode 2 gives every element bumps, so one pair can make several contacts.
+    let jagged = make_game(2);
+    let a = instantiate(jagged, blueprint_element(jagged, 4, [0, 0], [0, 0]));
+    check(
+        "a jagged element is more than one circle",
+        jagged.World.CollideCircle[a].Parts.length === 3 * (1 + MODES[2].Bumps),
+    );
+    check(
+        "the bumps stay inside the radius which holds the shape",
+        jagged.World.CollideCircle[a].Radius >= MODES[2].Radii[4] * 0.9,
+    );
+
+    let plain = make_game(0);
+    let b = instantiate(plain, blueprint_element(plain, 4, [0, 0], [0, 0]));
+    check("a plain element is one circle", plain.World.CollideCircle[b].Parts.length === 3);
+    check(
+        "a plain element keeps the radius of its tier",
+        plain.World.CollideCircle[b].Radius === MODES[0].Radii[4],
+    );
+}
+
+console.log("modes: dead stars");
+{
+    let game = make_game(2);
+    let star = instantiate(game, blueprint_star([0, 0]));
+    let element = instantiate(game, blueprint_element(game, 0, [0.5, 0], [-8, 0]));
+    // Stop the two from merging; a star has no Merge anyway.
+    for (let i = 0; i < 90; i++) {
+        step(game, true);
+    }
+    let at = game.World.LocalTransform2D[star].Translation;
+    check("a dead star never moves", at[0] === 0 && at[1] === 0, `at ${at[0]}, ${at[1]}`);
+    check(
+        "an element cannot pass through a dead star",
+        Math.hypot(...game.World.LocalTransform2D[element].Translation) > 0.9,
+    );
+}
+
+console.log("modes: friction");
+{
+    // Two elements sliding past each other. With friction the sliding is taken
+    // away; without it, it is kept.
+    function slide(mode: number) {
+        let game = make_game(mode);
+        let a = instantiate(game, blueprint_element(game, 4, [0, 0], [0, 4]));
+        let b = instantiate(
+            game,
+            blueprint_element(game, 4, [MODES[mode].Radii[4] * 1.9, 0], [0, -4]),
+        );
+        game.World.Merge[a].Cooldown = 999;
+        game.World.Merge[b].Cooldown = 999;
+        sys_transform2d(game, STEP);
+        sys_collide_circle(game, STEP);
+        sys_physics2d_resolve(game, STEP);
+        return Math.abs(
+            game.World.RigidBody2D[b].Velocity[1] - game.World.RigidBody2D[a].Velocity[1],
+        );
+    }
+
+    let free = slide(0);
+    let gripped = slide(3);
+    check("without friction the sliding is kept", free > 7.5, `${free.toFixed(2)}`);
+    check("with friction the sliding is cut", gripped < free * 0.7, `${gripped.toFixed(2)}`);
+}
+
+console.log("modes: fling");
+{
+    // A throw straight at the middle carries no turning force about the middle,
+    // whatever its mass. The "Momentum" mode therefore gives the element the
+    // sideways sweep of the cloud; without it the mode cannot spin anything.
+    function angular_momentum(mode: number, swing: number) {
+        let game = make_game(mode);
+        let tuning = MODES[mode];
+        let angle = 0.7;
+        let sideways = tuning.Fling * swing * tuning.OrbitRadius;
+        let cos = Math.cos(angle);
+        let sin = Math.sin(angle);
+        let element = instantiate(
+            game,
+            blueprint_element(
+                game,
+                4,
+                [cos * tuning.OrbitRadius, sin * tuning.OrbitRadius],
+                [
+                    -cos * tuning.DropSpeed - sin * sideways,
+                    -sin * tuning.DropSpeed + cos * sideways,
+                ],
+            ),
+        );
+        let p = game.World.LocalTransform2D[element].Translation;
+        let v = game.World.RigidBody2D[element].Velocity;
+        return p[0] * v[1] - p[1] * v[0];
+    }
+
+    check(
+        "a throw at the middle carries no turning force",
+        Math.abs(angular_momentum(0, 3)) < 1e-9,
+    );
+    check(
+        "a swept throw does carry one in the Momentum mode",
+        Math.abs(angular_momentum(3, 3)) > 100,
+        `${angular_momentum(3, 3).toFixed(1)}`,
+    );
+    check(
+        "sweeping the other way turns it the other way",
+        angular_momentum(3, 3) * angular_momentum(3, -3) < 0,
+    );
+}
+
+console.log("modes: sub-steps");
+{
+    // The Momentum mode has a low drag, so bodies get fast. The sub-steps must
+    // keep the distance moved in one step under the smallest radius, or small
+    // elements pass through each other.
+    for (let mode = 0; mode < MODES.length; mode++) {
+        let tuning = MODES[mode];
+        let top_speed = tuning.CenterPull / tuning.Drag;
+        let reach = top_speed / (60 * tuning.SubSteps);
+        check(
+            `mode ${mode} (${tuning.Name}) cannot tunnel`,
+            reach < tuning.Radii[0],
+            `moves ${reach.toFixed(2)} against a radius of ${tuning.Radii[0]}`,
+        );
+    }
+}
+
 console.log("chain");
 {
     // Four Sparkles in a row must end as one Heart: 4 -> 2 Stars -> 1 Heart.
     let game = make_game();
     for (let i = 0; i < 4; i++) {
-        instantiate(game, blueprint_element(0, [i * 0.85, 0], [0, 0]));
+        instantiate(game, blueprint_element(game, 0, [i * 0.85, 0], [0, 0]));
     }
     // The center pull is what brings the two new Stars together, so this test
     // runs the real step.

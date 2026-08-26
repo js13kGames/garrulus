@@ -9,7 +9,7 @@
  */
 
 import {Entity} from "../../lib/world.js";
-import {CENTER_PULL, DRAG, Game} from "../game.js";
+import {Game} from "../game.js";
 import {Has} from "../world.js";
 
 const QUERY = Has.LocalTransform2D | Has.RigidBody2D;
@@ -25,6 +25,12 @@ export function sys_physics2d_integrate(game: Game, delta: number) {
 function update(game: Game, entity: Entity, delta: number) {
     let local = game.World.LocalTransform2D[entity];
     let body = game.World.RigidBody2D[entity];
+    if (body.InverseMass === 0) {
+        // A dead star. Nothing moves it and nothing slows it down.
+        return;
+    }
+
+    let tuning = game.Tuning;
     let position = local.Translation;
     let velocity = body.Velocity;
 
@@ -32,13 +38,13 @@ function update(game: Game, entity: Entity, delta: number) {
     // pull packs the mass evenly and never runs away.
     let distance = Math.sqrt(position[0] * position[0] + position[1] * position[1]);
     if (distance > 0) {
-        let pull = (CENTER_PULL * delta) / distance;
+        let pull = (tuning.CenterPull * delta) / distance;
         velocity[0] -= position[0] * pull;
         velocity[1] -= position[1] * pull;
     }
 
     // Drag settles the pile and turns the orbits into a slow spin.
-    let damping = Math.max(0, 1 - DRAG * delta);
+    let damping = Math.max(0, 1 - tuning.Drag * delta);
     velocity[0] *= damping;
     velocity[1] *= damping;
     body.VelocityAngular *= damping;

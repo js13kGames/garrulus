@@ -302,3 +302,84 @@ so a helper which nothing calls costs no bytes, only reading time.
 
 Measured budget against `BUILD.md` section 12, gzipped: 6.2 KB used of the 13 KB
 target, with 3.0 KB of the plan set aside as headroom.
+
+---
+
+# Test modes
+
+The entries below cover the three modes of `new-modes.md`. The size budget is
+off while these are tested; the size still goes in every commit message.
+
+## 25. A mode is a row of numbers, not a scene
+
+`new-modes.md` says the modes are "separate scenes or toggles".
+
+**Decision:** one table, `src/modes.ts`. A mode is a `Tuning` record which
+`scene_stage` copies onto `Game.Tuning`. No mode has code of its own; the
+systems read the tuning. Three switches in the table change shape rather than
+numbers: `Bumps`, `DeadStars`, and `Fling`.
+
+**Reason:** three scenes would be three copies of the same scene. A table also
+makes the modes comparable, which is what the test is for, and lets a mode be
+tuned from the console without a rebuild.
+
+Mode 0 is the game as it was, kept as the thing to measure against.
+
+## 26. Four engine parts the modes needed
+
+None of these existed before, and each is used by more than one mode:
+
+- **Compound colliders.** `CollideCircle` holds `Parts`, a flat list of
+  [x, y, radius] triples in the local frame, instead of one radius. A plain
+  element is one part; a jagged one is a core and two bumps. The search is a
+  cheap test on the radius which holds the whole shape, then part against part.
+- **Friction.** The solver takes a share of the sliding at each contact away,
+  once for each contact in a step. Without it the pile packs into a smooth ball
+  and never turns.
+- **Immovable bodies.** An inverse mass of zero. `sys_physics2d_integrate`
+  leaves them alone and the solver cannot move them. Dead stars use this.
+- **Sub-steps.** The physics runs `SubSteps` times inside one fixed step. A mode
+  with a low drag lets bodies get fast, and a body must not move further than
+  the smallest radius in one step. The self test checks every mode against this
+  rule, so a future tuning cannot break it quietly.
+
+## 27. A throw at the middle cannot spin anything
+
+Mode 3 asks that "dropping a heavy item off-centre transfers massive momentum
+to the core cluster". It could not, and measurement showed why: the element left
+the cloud with the velocity `[-cos(angle) * speed, -sin(angle) * speed]`, which
+points exactly at the middle. Its line of travel passes through the middle, so
+it carries no turning force about the middle at all, whatever its mass. The
+measured turn rate of the mass was 0.009 radians each second, which is nothing.
+
+**Decision:** the element takes the sideways sweep of the cloud with it. The
+`DropCloud` component keeps a smoothed `Swing`, and a mode with `Fling` above
+zero turns that into sideways speed. A quick sweep before the release throws the
+element in at an angle.
+
+**Reason:** it is the only way to give the player control of the spin, and it
+matches the "Strategic Spinning" line of the document. Measured after the
+change: 0.33 radians each second on average, over 2 at the peak, against 0.02
+for Classic.
+
+**The cap matters.** Giving the element the whole speed of the cloud is the
+honest physics, but a pointer sweeps far faster than anyone could throw: at the
+full rate every drop left the arena and runs ended in 4 to 11 seconds with a
+score of 0. The sideways speed is capped at 0.8 of the inward speed.
+
+## 28. The Momentum numbers are measured, not chosen
+
+The first tuning of mode 3 (`CenterPull` 10, `Drag` 0.2) did not work: with so
+little pull and so little drag the elements orbited near the death ring instead
+of settling, and runs ended in seconds. A sweep of the parameters gave the
+window:
+
+| Pull | Drag | Fling | Seconds | Score | Turn rate |
+|---|---|---|---|---|---|
+| 10 | 0.2 | 0.5 | 4 to 11 | 0 to 3 | high, but nothing packs |
+| 16 | 0.3 | 0.45 | 8 | 58 | 1.74 |
+| 16 | 0.4 | 0.3 | 101 | 2271 | 0.23 |
+| **16** | **0.4** | **0.45** | **109** | **2650** | **0.26** |
+| 16 | 0.4 | 0.6 | 7 | 0 | 1.70 |
+
+Above `Fling` 0.45 the mode falls off a cliff. Keep it below that if you tune.

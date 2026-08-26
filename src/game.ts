@@ -1,5 +1,6 @@
 import {Game2D} from "../lib/game.js";
 import {Entity} from "../lib/world.js";
+import {MODES, Tuning} from "./modes.js";
 import {sys_animate_pop} from "./systems/sys_animate_pop.js";
 import {sys_camera2d} from "./systems/sys_camera2d.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
@@ -17,36 +18,9 @@ import {World} from "./world.js";
 
 export const WORLD_CAPACITY = 1024;
 
-// Tuning constants. All lengths are in world units, all times in seconds.
+// Constants which are the same in every mode. Everything a mode changes lives
+// in `modes.ts` instead; see `Game.Tuning`.
 
-/** The circle the drop cloud rides on. */
-export const ORBIT_RADIUS = 10;
-/** The mass may touch this circle, but not for longer than BREACH_LIMIT. */
-export const DEATH_RADIUS = 8.5;
-/** How much of the world the camera shows, measured from the center. */
-export const CAMERA_RADIUS = ORBIT_RADIUS + 1.5;
-
-/**
- * The pull toward the center, in units per second squared.
- *
- * `BUILD.md` says 40. That gives about 28 units per second at the center, which
- * is 0.47 units in one fixed step: further than the radius of a Sparkle, so
- * small elements tunnel through each other. 16 with a drag of 0.9 settles at
- * about 18 units per second, which is 0.3 units in a step.
- */
-export const CENTER_PULL = 16;
-/** Velocity lost each second, as a fraction. */
-export const DRAG = 0.9;
-/** How much of the closing speed a contact gives back. Keep it low; this is a pile, not a ball pit. */
-export const BOUNCE = 0.1;
-/** How much of the tangential slip at a contact becomes spin. For the eye only. */
-export const SPIN = 12;
-/** Passes of the contact solver in one fixed step. */
-export const SOLVER_ITERATIONS = 6;
-/** Seconds between two drops. */
-export const DROP_COOLDOWN = 0.35;
-/** How fast a dropped element leaves the cloud, in units per second. */
-export const DROP_SPEED = 4;
 /** Seconds a fresh element waits before it can merge again. */
 export const MERGE_COOLDOWN = 0.2;
 /** How big a fresh element starts, as a factor of its true size. */
@@ -72,12 +46,20 @@ export const SHAKE_MAX = 0.5;
 export interface Contact {
     A: Entity;
     B: Entity;
-    /** The sum of the two radii. The solver computes the depth from live positions. */
+    /** Which part of A and of B touch. An offset into `CollideCircle.Parts`. */
+    PartA: number;
+    PartB: number;
+    /** The sum of the two part radii. The solver finds the depth from live positions. */
     Sum: number;
 }
 
 export class Game extends Game2D {
     World = new World(WORLD_CAPACITY);
+
+    /** The numbers of the mode being played. Set by `scene_stage`. */
+    Tuning: Tuning = MODES[0];
+    /** Index into MODES. Kept so the game over screen can offer the same mode again. */
+    Mode = 0;
 
     /** Touching pairs found this step. Only the first ContactCount entries are live. */
     Contacts: Array<Contact> = [];
@@ -85,11 +67,13 @@ export class Game extends Game2D {
 
     PlayState: "title" | "play" | "over" = "title";
     Score = 0;
-    BestScore = load_best();
+    BestScore = load_best(0);
     /** Set when two Cosmic Unicorns meet. Play goes on. */
     Won = false;
     /** Seconds left on the win banner. */
     WinTime = 0;
+    /** How long this run has lasted, in seconds. For judging the modes. */
+    RunTime = 0;
 
     /** Seconds the mass has been over the death ring without a break. */
     BreachTime = 0;
@@ -114,10 +98,20 @@ export class Game extends Game2D {
             return;
         }
 
-        sys_physics2d_integrate(this, step);
-        sys_transform2d(this, step);
-        sys_collide_circle(this, step);
-        sys_physics2d_resolve(this, step);
+        // Sub-steps. A mode with a low drag lets bodies get fast, and a body
+        // must not move further than the smallest radius in one step or it
+        // passes through its neighbour. Splitting the step is the fix which
+        // costs no tuning of the mode itself.
+        let sub = this.Tuning.SubSteps;
+        let sub_step = step / sub;
+        for (let i = 0; i < sub; i++) {
+            sys_physics2d_integrate(this, sub_step);
+            sys_transform2d(this, sub_step);
+            sys_collide_circle(this, sub_step);
+            sys_physics2d_resolve(this, sub_step);
+        }
+
+        // The merge reads the contact list the last sub-step left behind.
         sys_merge(this, step);
         sys_transform2d(this, step);
         if (this.PlayState === "play") {
@@ -135,18 +129,20 @@ export class Game extends Game2D {
     }
 }
 
-/** The key the best score is kept under. */
-export const STORE_KEY = "garrulus";
+/** The key the best score of a mode is kept under. */
+export function store_key(mode: number) {
+    return `garrulus${mode}`;
+}
 
 /**
- * Read the best score.
+ * Read the best score of a mode.
  *
  * A browser can refuse localStorage: private windows and blocked site data both
  * throw on access. The game must still start.
  */
-export function load_best() {
+export function load_best(mode: number) {
     try {
-        return Number(localStorage[STORE_KEY]) || 0;
+        return Number(localStorage[store_key(mode)]) || 0;
     } catch {
         return 0;
     }
@@ -155,5 +151,6 @@ export function load_best() {
 export const enum Layer {
     None = 0,
     Element = 1,
-    Cloud = 2,
+    Star = 2,
+    Cloud = 4,
 }

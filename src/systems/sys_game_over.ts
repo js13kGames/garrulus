@@ -12,13 +12,15 @@
  * the ring, so an unarmed element is simply one which is still falling.
  */
 
-import {BREACH_LIMIT, DEATH_RADIUS, Game, STORE_KEY} from "../game.js";
+import {BREACH_LIMIT, Game, store_key} from "../game.js";
 import {sound_over} from "../sounds.js";
 import {Has} from "../world.js";
 
 const QUERY = Has.LocalTransform2D | Has.CollideCircle | Has.Merge;
 
 export function sys_game_over(game: Game, delta: number) {
+    game.RunTime += delta;
+
     if (game.WinTime > 0) {
         game.WinTime -= delta;
     }
@@ -35,7 +37,7 @@ export function sys_game_over(game: Game, delta: number) {
             game.World.CollideCircle[ent].Radius;
         let element = game.World.Merge[ent];
 
-        if (reach <= DEATH_RADIUS) {
+        if (reach <= game.Tuning.DeathRadius) {
             element.Armed = true;
         } else if (element.Armed) {
             breached = true;
@@ -50,7 +52,7 @@ export function sys_game_over(game: Game, delta: number) {
         if (game.Score > game.BestScore) {
             game.BestScore = game.Score;
             try {
-                localStorage[STORE_KEY] = game.BestScore;
+                localStorage[store_key(game.Mode)] = game.BestScore;
             } catch {
                 // A browser which refuses to store must not end the run with an
                 // error. The score is still on the screen.

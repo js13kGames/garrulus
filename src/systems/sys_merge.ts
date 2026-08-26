@@ -11,8 +11,10 @@
  */
 
 import {instantiate} from "../../lib/game.js";
+import {float} from "../../lib/random.js";
 import {destroy_entity} from "../../lib/world.js";
 import {animate_pop} from "../components/com_animate_pop.js";
+import {element_parts} from "../components/com_collide_circle.js";
 import {
     Game,
     HITSTOP_BIG,
@@ -22,7 +24,7 @@ import {
     SHAKE_PER_TIER,
     WIN_BANNER,
 } from "../game.js";
-import {ELEMENTS, TOP_TIER} from "../scenes/blu_element.js";
+import {SCORES, TOP_TIER} from "../scenes/blu_element.js";
 import {blueprint_pop_ring} from "../scenes/blu_pop_ring.js";
 import {sound_merge, sound_win} from "../sounds.js";
 import {Has} from "../world.js";
@@ -85,13 +87,13 @@ function merge(game: Game, keep: number, gone: number) {
     let vy = (body_keep.Velocity[1] + body_gone.Velocity[1]) / 2;
 
     destroy_entity(game.World, gone);
-    instantiate(game, blueprint_pop_ring([x, y], ELEMENTS[tier][0]));
+    instantiate(game, blueprint_pop_ring([x, y], game.Tuning.Radii[tier]));
 
     if (tier === TOP_TIER) {
         // Two Cosmic Unicorns cancel each other out. The board gets room back,
         // which is the reward, and the game goes on.
         destroy_entity(game.World, keep);
-        game.Score += ELEMENTS[tier][1] * 2;
+        game.Score += SCORES[tier] * 2;
         game.Won = true;
         game.WinTime = WIN_BANNER;
         game.ShakeAmount += SHAKE_PER_TIER * (tier + 2);
@@ -101,11 +103,21 @@ function merge(game: Game, keep: number, gone: number) {
     }
 
     let next = tier + 1;
-    let radius = ELEMENTS[next][0];
+    let radius = game.Tuning.Radii[next];
 
     game.World.Merge[keep].Tier = next;
     game.World.Merge[keep].Cooldown = MERGE_COOLDOWN;
-    game.World.CollideCircle[keep].Radius = radius;
+    // Rebuild the shape at the new size. The bumps of the survivor are set at
+    // a new angle, so two merged elements do not come out identical.
+    let collide = game.World.CollideCircle[keep];
+    collide.Parts = element_parts(radius, game.Tuning.Bumps, float(0, Math.PI * 2));
+    collide.Radius = radius;
+    for (let i = 0; i < collide.Parts.length; i += 3) {
+        collide.Radius = Math.max(
+            collide.Radius,
+            Math.hypot(collide.Parts[i], collide.Parts[i + 1]) + collide.Parts[i + 2],
+        );
+    }
     body_keep.InverseMass = 1 / (radius * radius);
     body_keep.Velocity[0] = vx;
     body_keep.Velocity[1] = vy;
@@ -115,7 +127,7 @@ function merge(game: Game, keep: number, gone: number) {
 
     animate_pop()(game, keep);
 
-    game.Score += ELEMENTS[next][1];
+    game.Score += SCORES[next];
     game.ShakeAmount += SHAKE_PER_TIER * next;
     game.HitStop = next < HITSTOP_TIER ? HITSTOP_SMALL : HITSTOP_BIG;
     sound_merge(game, next);

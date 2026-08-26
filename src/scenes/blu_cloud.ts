@@ -10,6 +10,6 @@ import {roll_tier} from "../systems/sys_control_cloud.js";
  *
  * It has no collider: it must never touch the pile.
  */
-export function blueprint_cloud(): Blueprint<Game> {
+export function blueprint_cloud(game: Game): Blueprint<Game> {
     return [spatial_node2d(), local_transform2d(), drop_cloud(roll_tier())];
 }

@@ -10,17 +10,9 @@
 
 import {float, set_seed} from "../../lib/random.js";
 import {Entity} from "../../lib/world.js";
-import {
-    BREACH_LIMIT,
-    CAMERA_RADIUS,
-    DEATH_RADIUS,
-    Game,
-    ORBIT_RADIUS,
-    POP_RING_LIFE,
-    SHAKE_DECAY,
-    SHAKE_MAX,
-} from "../game.js";
-import {ELEMENTS} from "../scenes/blu_element.js";
+import {BREACH_LIMIT, Game, POP_RING_LIFE, SHAKE_DECAY, SHAKE_MAX} from "../game.js";
+import {MAX_CAMERA_RADIUS} from "../modes.js";
+import {COLORS} from "../scenes/blu_element.js";
 import {Has} from "../world.js";
 
 const TAU = Math.PI * 2;
@@ -37,11 +29,13 @@ for (let i = 0; i < 70; i++) {
     let angle = float(0, TAU);
     // sqrt keeps the stars spread evenly over the disc instead of clumping in
     // the middle.
-    let dist = Math.sqrt(float(0, 1)) * CAMERA_RADIUS * 1.6;
+    let dist = Math.sqrt(float(0, 1)) * MAX_CAMERA_RADIUS * 1.6;
     STARS.push(Math.cos(angle) * dist, Math.sin(angle) * dist, float(0.04, 0.09));
 }
 
 const QUERY_ELEMENT = Has.SpatialNode2D | Has.CollideCircle | Has.Merge;
+// A dead star has a collider but is not an element: it has no Merge.
+const QUERY_STAR = Has.SpatialNode2D | Has.CollideCircle | Has.RigidBody2D;
 const QUERY_CLOUD = Has.SpatialNode2D | Has.DropCloud;
 // A pop ring is the only entity which has a lifespan but is not an element.
 const QUERY_RING = Has.SpatialNode2D | Has.Lifespan;
@@ -88,8 +82,9 @@ export function sys_draw(game: Game, delta: number) {
         game.ShakeAmount = 0;
     }
 
-    draw_background(ctx);
-    draw_rings(ctx, game.BreachTime / BREACH_LIMIT);
+    draw_background(game, ctx);
+    draw_rings(game, ctx, game.BreachTime / BREACH_LIMIT);
+    draw_stars(game, ctx);
     draw_elements(game, ctx);
     draw_rings_of_merges(game, ctx);
     draw_clouds(game, ctx);
@@ -139,14 +134,16 @@ function draw_debug(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.stroke();
 }
 
-function draw_background(ctx: CanvasRenderingContext2D) {
+function draw_background(game: Game, ctx: CanvasRenderingContext2D) {
+    let death = game.Tuning.DeathRadius;
+
     // A soft glow behind the middle, where the pile grows.
-    let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, DEATH_RADIUS);
+    let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, death);
     glow.addColorStop(0, "#1e1746");
     glow.addColorStop(1, "#08061400");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(0, 0, DEATH_RADIUS, 0, TAU);
+    ctx.arc(0, 0, death, 0, TAU);
     ctx.fill();
 
     ctx.fillStyle = "#cfc8ff";
@@ -155,14 +152,14 @@ function draw_background(ctx: CanvasRenderingContext2D) {
     }
 }
 
-function draw_rings(ctx: CanvasRenderingContext2D, breach: number) {
+function draw_rings(game: Game, ctx: CanvasRenderingContext2D, breach: number) {
     // The death ring. It goes from calm violet to alarm red as the mass leans
     // on it, so the player can see the timer without a number.
     let heat = Math.min(breach, 1);
     ctx.strokeStyle = `rgb(${58 + 197 * heat} ${47 - 25 * heat} ${107 - 30 * heat})`;
     ctx.lineWidth = 0.05 + 0.09 * heat;
     ctx.beginPath();
-    ctx.arc(0, 0, DEATH_RADIUS, 0, TAU);
+    ctx.arc(0, 0, game.Tuning.DeathRadius, 0, TAU);
     ctx.stroke();
 
     // The orbit ring the cloud rides on.
@@ -170,7 +167,7 @@ function draw_rings(ctx: CanvasRenderingContext2D, breach: number) {
     ctx.lineWidth = 0.03;
     ctx.setLineDash([0.2, 0.25]);
     ctx.beginPath();
-    ctx.arc(0, 0, ORBIT_RADIUS, 0, TAU);
+    ctx.arc(0, 0, game.Tuning.OrbitRadius, 0, TAU);
     ctx.stroke();
     ctx.setLineDash([]);
 }
@@ -188,8 +185,8 @@ function draw_elements(game: Game, ctx: CanvasRenderingContext2D) {
     for (let i = 0; i < ordered.length; i++) {
         let ent = ordered[i];
         let node = game.World.SpatialNode2D[ent];
-        let radius = game.World.CollideCircle[ent].Radius;
-        let color = ELEMENTS[game.World.Merge[ent].Tier][2];
+        let parts = game.World.CollideCircle[ent].Parts;
+        let color = COLORS[game.World.Merge[ent].Tier];
 
         ctx.save();
         ctx.transform(
@@ -200,12 +197,30 @@ function draw_elements(game: Game, ctx: CanvasRenderingContext2D) {
             node.World[4],
             node.World[5],
         );
-        draw_body(ctx, radius, color);
+        draw_body(ctx, parts, color);
         ctx.restore();
     }
 }
 
-function draw_body(ctx: CanvasRenderingContext2D, radius: number, color: string) {
+/**
+ * Draw an element from its collider parts.
+ *
+ * The bumps are drawn first and behind, so that the face on the core stays
+ * readable however the element is turned.
+ */
+function draw_body(ctx: CanvasRenderingContext2D, parts: Array<number>, color: string) {
+    for (let i = 3; i < parts.length; i += 3) {
+        ctx.save();
+        ctx.translate(parts[i], parts[i + 1]);
+        draw_blob(ctx, parts[i + 2], color);
+        ctx.restore();
+    }
+
+    draw_blob(ctx, parts[2], color);
+    draw_face(ctx, parts[2]);
+}
+
+function draw_blob(ctx: CanvasRenderingContext2D, radius: number, color: string) {
     // A light spot up and to the left gives the flat circle its volume.
     let shade = ctx.createRadialGradient(
         -radius * 0.35,
@@ -227,8 +242,6 @@ function draw_body(ctx: CanvasRenderingContext2D, radius: number, color: string)
     ctx.lineWidth = radius * 0.08;
     ctx.strokeStyle = "#00000040";
     ctx.stroke();
-
-    draw_face(ctx, radius);
 }
 
 /**
@@ -275,9 +288,9 @@ function draw_clouds(game: Game, ctx: CanvasRenderingContext2D) {
 
         // The cloud points at the center, so local +Y is the way the element
         // falls. The preview element hangs there, under the cloud.
-        let [radius, , color] = ELEMENTS[cloud.NextTier];
+        let radius = game.Tuning.Radii[cloud.NextTier];
         ctx.globalAlpha = cloud.Cooldown > 0 ? 0.25 : 0.75;
-        draw_body(ctx, radius, color);
+        draw_blob(ctx, radius, COLORS[cloud.NextTier]);
         ctx.globalAlpha = 1;
 
         // A blob of three overlapping circles.
@@ -321,6 +334,55 @@ function draw_rings_of_merges(game: Game, ctx: CanvasRenderingContext2D) {
         ctx.arc(0, 0, 1 + 1.1 * (1 - left), 0, TAU);
         ctx.stroke();
         ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+}
+
+/**
+ * Dead stars: the obstacles of the "Jagged Orbit" mode.
+ *
+ * They are drawn under the pile, as cold grey rocks with a cross of light, so
+ * that they read as scenery and not as something which can be merged.
+ */
+function draw_stars(game: Game, ctx: CanvasRenderingContext2D) {
+    for (let ent = 0; ent < game.World.Signature.length; ent++) {
+        if (
+            (game.World.Signature[ent] & QUERY_STAR) !== QUERY_STAR ||
+            game.World.Signature[ent] & Has.Merge
+        ) {
+            continue;
+        }
+
+        let node = game.World.SpatialNode2D[ent];
+        let radius = game.World.CollideCircle[ent].Radius;
+
+        ctx.save();
+        ctx.transform(
+            node.World[0],
+            node.World[1],
+            node.World[2],
+            node.World[3],
+            node.World[4],
+            node.World[5],
+        );
+
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, TAU);
+        ctx.fillStyle = "#2b2748";
+        ctx.fill();
+        ctx.lineWidth = radius * 0.12;
+        ctx.strokeStyle = "#4a4270";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-radius * 0.45, 0);
+        ctx.lineTo(radius * 0.45, 0);
+        ctx.moveTo(0, -radius * 0.45);
+        ctx.lineTo(0, radius * 0.45);
+        ctx.strokeStyle = "#6b60a0";
+        ctx.lineWidth = radius * 0.1;
+        ctx.stroke();
+
         ctx.restore();
     }
 }

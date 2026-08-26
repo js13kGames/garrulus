@@ -18,7 +18,10 @@ export interface RigidBody2D {
     Velocity: Vec2;
     /** Degrees per second. */
     VelocityAngular: number;
-    /** 1 / mass. Mass is the square of the radius, so big elements shove small ones. */
+    /**
+     * 1 / mass. Mass is the square of the radius, so big elements shove small
+     * ones. Zero means the body never moves: a dead star.
+     */
     InverseMass: number;
 }
 
@@ -28,14 +31,20 @@ export interface RigidBody2D {
  * @param radius The radius of the body, which decides its mass.
  * @param velocity The initial velocity, in units per second.
  * @param velocity_angular The initial spin, in degrees per second.
+ * @param immovable Make a body which nothing can push: a dead star.
  */
-export function rigid_body2d(radius: number, velocity: Vec2, velocity_angular = 0) {
+export function rigid_body2d(
+    radius: number,
+    velocity: Vec2,
+    velocity_angular = 0,
+    immovable = false,
+) {
     return (game: Game, entity: Entity) => {
         game.World.Signature[entity] |= Has.RigidBody2D;
         game.World.RigidBody2D[entity] = {
             Velocity: velocity,
             VelocityAngular: velocity_angular,
-            InverseMass: 1 / (radius * radius),
+            InverseMass: immovable ? 0 : 1 / (radius * radius),
         };
     };
 }
