@@ -14,7 +14,7 @@ import {instantiate} from "../../lib/game.js";
 import {float} from "../../lib/random.js";
 import {destroy_entity} from "../../lib/world.js";
 import {animate_pop} from "../components/com_animate_pop.js";
-import {element_parts} from "../components/com_collide_circle.js";
+import {element_parts, scale_parts} from "../components/com_collide_circle.js";
 import {
     Game,
     HITSTOP_BIG,
@@ -109,15 +109,12 @@ function merge(game: Game, keep: number, gone: number) {
     game.World.Merge[keep].Cooldown = MERGE_COOLDOWN;
     // Rebuild the shape at the new size. The bumps of the survivor are set at
     // a new angle, so two merged elements do not come out identical.
+    // sys_scale_by_radius makes the shape it is drawn and collided at from this
+    // one on the next step.
     let collide = game.World.CollideCircle[keep];
-    collide.Parts = element_parts(radius, game.Tuning.Bumps, float(0, Math.PI * 2));
-    collide.Radius = radius;
-    for (let i = 0; i < collide.Parts.length; i += 3) {
-        collide.Radius = Math.max(
-            collide.Radius,
-            Math.hypot(collide.Parts[i], collide.Parts[i + 1]) + collide.Parts[i + 2],
-        );
-    }
+    collide.BaseParts = element_parts(radius, game.Tuning.Bumps, float(0, Math.PI * 2));
+    collide.Parts = collide.BaseParts.slice();
+    scale_parts(collide, 1);
     body_keep.InverseMass = 1 / (radius * radius);
     body_keep.Velocity[0] = vx;
     body_keep.Velocity[1] = vy;

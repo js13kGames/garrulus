@@ -76,6 +76,17 @@ export interface Tuning {
     /** Radius for each tier. */
     Radii: Array<number>;
 
+    /**
+     * How big an element is at the middle, and at the death ring, as a factor
+     * of the size its tier asks for.
+     *
+     * Both at 1 turns the whole thing off. Below 1 at the middle and above 1 at
+     * the ring makes the middle the safe place to be, and gives the player room
+     * back for every element they push inward.
+     */
+    ScaleCenter: number;
+    ScaleEdge: number;
+
     /** Bumps added around each element. 0 makes a plain circle. */
     Bumps: number;
     /** Immovable obstacles placed in the arena. */
@@ -99,6 +110,8 @@ export const MODES: Array<Tuning> = [
         DropSpeed: 4,
         Fling: 0,
         Radii: RADII_LINEAR,
+        ScaleCenter: 1,
+        ScaleEdge: 1,
         Bumps: 0,
         DeadStars: 0,
     },
@@ -124,6 +137,8 @@ export const MODES: Array<Tuning> = [
         DropSpeed: 4,
         Fling: 0,
         Radii: RADII_EXPONENTIAL,
+        ScaleCenter: 1,
+        ScaleEdge: 1,
         Bumps: 0,
         DeadStars: 0,
     },
@@ -148,6 +163,8 @@ export const MODES: Array<Tuning> = [
         DropSpeed: 4,
         Fling: 0,
         Radii: RADII_LINEAR,
+        ScaleCenter: 1,
+        ScaleEdge: 1,
         Bumps: 2,
         DeadStars: 3,
     },
@@ -189,6 +206,8 @@ export const MODES: Array<Tuning> = [
         // cap in sys_control_cloud.
         Fling: 0.45,
         Radii: RADII_LINEAR,
+        ScaleCenter: 1,
+        ScaleEdge: 1,
         Bumps: 0,
         DeadStars: 0,
     },
@@ -221,6 +240,12 @@ export const MODES: Array<Tuning> = [
         DropSpeed: 8,
         Fling: 0.45,
         Radii: RADII_EXPONENTIAL,
+        // The middle is the safe place. An element at the rim is nearly twice
+        // the radius of the same element at the middle, so the outside of the
+        // pile is where the room runs out first, and pushing mass inward gives
+        // room back. Tuned in DECISIONS.md, decision 30.
+        ScaleCenter: 0.7,
+        ScaleEdge: 1.3,
         Bumps: 2,
         DeadStars: 2,
     },

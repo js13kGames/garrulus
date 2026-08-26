@@ -20,8 +20,15 @@ import {Has} from "../world.js";
 
 export interface CollideCircle {
     /**
-     * The circles which make the shape, as flat [x, y, radius] triples in the
-     * local frame. A plain element has exactly one, at [0, 0, radius].
+     * The shape at its true size, as flat [x, y, radius] triples in the local
+     * frame. This is what the tier asks for, and it changes only on a merge.
+     */
+    BaseParts: Array<number>;
+    /**
+     * The shape as it is now.
+     *
+     * A mode which scales elements by how far they are from the middle rewrites
+     * this every step from `BaseParts`. In every other mode it is a copy.
      */
     Parts: Array<number>;
     /**
@@ -42,21 +49,38 @@ export interface CollideCircle {
  * @param mask The layers this collider tests against.
  */
 export function collide_circle(parts: Array<number>, layer: Layer, mask: Layer) {
-    // The bounding radius is the furthest any part reaches from the middle.
-    let radius = 0;
-    for (let i = 0; i < parts.length; i += 3) {
-        radius = Math.max(radius, Math.hypot(parts[i], parts[i + 1]) + parts[i + 2]);
-    }
-
     return (game: Game, entity: Entity) => {
         game.World.Signature[entity] |= Has.CollideCircle;
-        game.World.CollideCircle[entity] = {
-            Parts: parts,
-            Radius: radius,
+        let collide: CollideCircle = {
+            BaseParts: parts,
+            Parts: parts.slice(),
+            Radius: 0,
             Layer: layer,
             Mask: mask,
         };
+        scale_parts(collide, 1);
+        game.World.CollideCircle[entity] = collide;
     };
+}
+
+/**
+ * Write `Parts` from `BaseParts` at the given size, and find the radius which
+ * holds the whole shape.
+ *
+ * The offsets of the bumps are scaled with their radii, so a lumpy element
+ * keeps its shape as it grows and shrinks instead of shedding its bumps.
+ */
+export function scale_parts(collide: CollideCircle, factor: number) {
+    let base = collide.BaseParts;
+    let parts = collide.Parts;
+    let radius = 0;
+    for (let i = 0; i < base.length; i += 3) {
+        let x = (parts[i] = base[i] * factor);
+        let y = (parts[i + 1] = base[i + 1] * factor);
+        let r = (parts[i + 2] = base[i + 2] * factor);
+        radius = Math.max(radius, Math.hypot(x, y) + r);
+    }
+    collide.Radius = radius;
 }
 
 /**

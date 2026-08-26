@@ -12,6 +12,7 @@ import {sys_merge} from "./systems/sys_merge.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
 import {sys_resize2d} from "./systems/sys_resize2d.js";
+import {sys_scale_by_radius} from "./systems/sys_scale_by_radius.js";
 import {sys_transform2d} from "./systems/sys_transform2d.js";
 import {sys_ui} from "./systems/sys_ui.js";
 import {World} from "./world.js";
@@ -107,6 +108,9 @@ export class Game extends Game2D {
         for (let i = 0; i < sub; i++) {
             sys_physics2d_integrate(this, sub_step);
             sys_transform2d(this, sub_step);
+            // The size depends on where the body now is, so it is found again
+            // after every move and before anything looks at the shapes.
+            sys_scale_by_radius(this, sub_step);
             sys_collide_circle(this, sub_step);
             sys_physics2d_resolve(this, sub_step);
         }

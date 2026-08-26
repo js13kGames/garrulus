@@ -20,6 +20,7 @@ import {sys_game_over} from "./systems/sys_game_over.js";
 import {sys_merge} from "./systems/sys_merge.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
+import {sys_scale_by_radius} from "./systems/sys_scale_by_radius.js";
 import {sys_transform2d} from "./systems/sys_transform2d.js";
 import {Has, World} from "./world.js";
 
@@ -366,6 +367,76 @@ console.log("modes: fling");
     check(
         "sweeping the other way turns it the other way",
         angular_momentum(3, 3) * angular_momentum(3, -3) < 0,
+    );
+}
+
+console.log("modes: size by distance");
+{
+    let game = make_game(4);
+    let tuning = MODES[4];
+
+    /** The radius of a fresh tier 5 element placed this far from the middle. */
+    function measure(distance: number) {
+        let ent = instantiate(game, blueprint_element(game, 5, [distance, 0], [0, 0]));
+        sys_scale_by_radius(game, STEP);
+        let collide = game.World.CollideCircle[ent];
+
+        // Compare against this element's own untouched shape, not against
+        // another mode: mode 4 has its own radius table and its own bumps.
+        let base = 0;
+        for (let i = 0; i < collide.BaseParts.length; i += 3) {
+            base = Math.max(
+                base,
+                Math.hypot(collide.BaseParts[i], collide.BaseParts[i + 1]) +
+                    collide.BaseParts[i + 2],
+            );
+        }
+        let ratio = collide.Radius / base;
+        game.World.Signature[ent] = 0;
+        return ratio;
+    }
+
+    let middle = measure(0);
+    let half = measure(tuning.DeathRadius / 2);
+    let rim = measure(tuning.DeathRadius);
+    let beyond = measure(tuning.DeathRadius * 3);
+
+    check(
+        "an element is smallest at the middle",
+        middle < half && half < rim,
+        `${middle.toFixed(2)} ${half.toFixed(2)} ${rim.toFixed(2)}`,
+    );
+    check(
+        "the size at the middle is what the mode asks for",
+        Math.abs(middle - tuning.ScaleCenter) < 0.01,
+        `${middle.toFixed(3)} against ${tuning.ScaleCenter}`,
+    );
+    check(
+        "the size at the ring is what the mode asks for",
+        Math.abs(rim - tuning.ScaleEdge) < 0.01,
+        `${rim.toFixed(3)} against ${tuning.ScaleEdge}`,
+    );
+    check("halfway is halfway between the two", Math.abs(half - (middle + rim) / 2) < 0.01);
+    check("the size stops growing past the ring", Math.abs(beyond - rim) < 1e-9);
+
+    // The mass must not follow the size, or a body pushed outward would gain
+    // weight for free and the solver would turn that into energy.
+    let a = instantiate(game, blueprint_element(game, 5, [0, 0], [0, 0]));
+    let b = instantiate(game, blueprint_element(game, 5, [tuning.DeathRadius, 0], [0, 0]));
+    sys_scale_by_radius(game, STEP);
+    check(
+        "the mass does not change with the size",
+        game.World.RigidBody2D[a].InverseMass === game.World.RigidBody2D[b].InverseMass,
+    );
+
+    // Every other mode must be untouched.
+    let plain = make_game(0);
+    let ent = instantiate(plain, blueprint_element(plain, 5, [MODES[0].DeathRadius, 0], [0, 0]));
+    let before = plain.World.CollideCircle[ent].Radius;
+    sys_scale_by_radius(plain, STEP);
+    check(
+        "a mode which does not use it is left alone",
+        plain.World.CollideCircle[ent].Radius === before,
     );
 }
 

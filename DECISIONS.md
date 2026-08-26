@@ -419,3 +419,56 @@ for the exponential ones.
 step apart gave 33 and 95 seconds on a single run each. Every number in the
 tables above is the mean of four runs with different starting angles. Do not
 tune a mode on one run.
+
+## 30. Size by distance from the middle, in Maelstrom
+
+An element is small near the middle and big near the death ring:
+`ScaleCenter` at the middle, `ScaleEdge` at the ring, straight line between.
+Both at 1 turns it off, which is what every other mode uses.
+
+The shape is scaled, not the mass. If the mass moved with the size, a body
+pushed outward would gain weight for nothing, and the solver would turn that
+into energy the pile never spent. The self test holds the two apart.
+
+**It rewards, it does not only punish.** Measured over four runs of each:
+
+| ScaleCenter / ScaleEdge | Seconds | Score | Top tier |
+|---|---|---|---|
+| 1.0 / 1.0 (off) | 62 | 1592 | 8.0 |
+| 0.85 / 1.15 | 58 | 1586 | 8.0 |
+| **0.7 / 1.3** | **75** | **2106** | **8.5** |
+| 0.55 / 1.45 | 61 | 1673 | 8.0 |
+| 0.6 / 1.0 (shrink only) | 102 | 3038 | 9.0 |
+| 1.0 / 1.4 (grow only) | 41 | 981 | 7.3 |
+
+The two halves of the rule pull opposite ways, and they are worth reading
+separately. Growing at the rim alone is the harshest thing tried on this game:
+41 seconds, and the run never gets past tier 7. Shrinking at the middle alone is
+the kindest: 102 seconds and a Cosmic Unicorn. Together at 0.7 / 1.3 the run is
+*longer* than with the rule off, because most of the pile sits nearer the middle
+than the rim, so the room given back is worth more than the room taken.
+
+That is what makes the rule worth keeping: it is not a difficulty knob. It adds
+a second reason to push mass inward, and it makes the outside of the pile the
+place the player has to watch.
+
+**The preview follows.** The cloud rides outside the death ring, so an element
+dropped from it arrives at `ScaleEdge`. The preview under the cloud is drawn at
+that size, not at the size of the tier, or it would promise something smaller
+than what lands.
+
+## 31. Serve the dev page with no caching
+
+`play/index.html` is one file, but the dev page loads `src/index.js` as a
+module. Chrome caches a module served with no cache headers, using a guess at
+how long it stays fresh. After a rebuild the browser therefore keeps running the
+old bundle, with no sign that anything is wrong.
+
+This wasted a measurement pass: four different settings of the size rule all
+returned exactly the same numbers, because none of them were in the bundle the
+page was running. The giveaway was that the results were *identical*, not merely
+close.
+
+**Use a server which sends `Cache-Control: no-store`.** If a change appears to
+do nothing, check that the browser has it before you conclude anything: read a
+field you have just added and see whether it is `undefined`.

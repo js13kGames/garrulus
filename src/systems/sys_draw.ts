@@ -288,7 +288,10 @@ function draw_clouds(game: Game, ctx: CanvasRenderingContext2D) {
 
         // The cloud points at the center, so local +Y is the way the element
         // falls. The preview element hangs there, under the cloud.
-        let radius = game.Tuning.Radii[cloud.NextTier];
+        // The cloud sits outside the death ring, so an element dropped from it
+        // arrives at the largest size the mode allows. Show that size, not the
+        // size the tier asks for, or the preview lies about what is coming.
+        let radius = game.Tuning.Radii[cloud.NextTier] * game.Tuning.ScaleEdge;
         ctx.globalAlpha = cloud.Cooldown > 0 ? 0.25 : 0.75;
         draw_blob(ctx, radius, COLORS[cloud.NextTier]);
         ctx.globalAlpha = 1;
