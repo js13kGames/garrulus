@@ -10,7 +10,7 @@
 
 import {float, set_seed} from "../../lib/random.js";
 import {Entity} from "../../lib/world.js";
-import {CAMERA_RADIUS, DEATH_RADIUS, Game, ORBIT_RADIUS} from "../game.js";
+import {BREACH_LIMIT, CAMERA_RADIUS, DEATH_RADIUS, Game, ORBIT_RADIUS} from "../game.js";
 import {ELEMENTS} from "../scenes/blu_element.js";
 import {Has} from "../world.js";
 
@@ -66,7 +66,7 @@ export function sys_draw(game: Game, delta: number) {
     ctx.scale(1, -1);
 
     draw_background(ctx);
-    draw_rings(ctx);
+    draw_rings(ctx, game.BreachTime / BREACH_LIMIT);
     draw_elements(game, ctx);
     draw_clouds(game, ctx);
 }
@@ -87,10 +87,12 @@ function draw_background(ctx: CanvasRenderingContext2D) {
     }
 }
 
-function draw_rings(ctx: CanvasRenderingContext2D) {
-    // The death ring. It turns red as the mass leans on it; see sys_game_over.
-    ctx.strokeStyle = "#3a2f6b";
-    ctx.lineWidth = 0.05;
+function draw_rings(ctx: CanvasRenderingContext2D, breach: number) {
+    // The death ring. It goes from calm violet to alarm red as the mass leans
+    // on it, so the player can see the timer without a number.
+    let heat = Math.min(breach, 1);
+    ctx.strokeStyle = `rgb(${58 + 197 * heat} ${47 - 25 * heat} ${107 - 30 * heat})`;
+    ctx.lineWidth = 0.05 + 0.09 * heat;
     ctx.beginPath();
     ctx.arc(0, 0, DEATH_RADIUS, 0, TAU);
     ctx.stroke();

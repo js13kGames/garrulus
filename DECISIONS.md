@@ -227,3 +227,31 @@ those systems read `game.World` and the contact list only.
 The build stubs `document.getElementById` with an esbuild banner, because
 `lib/game.ts` reads the debug elements when the module loads. The self test is
 never imported by `index.ts`, so it is not in the release bundle.
+
+## 19. An element counts for the breach only after it arms itself
+
+This is the second half of the `DEATH_RADIUS` problem in decision 10.
+
+Elements drop from the orbit circle at radius 10, and the death ring is at 8.5.
+An element is therefore outside the death ring for its whole fall. With
+`BUILD.md` section 7.6 as written, the timer fills while any element is over the
+line, so the timer would fill during every drop and the run would end about
+three seconds after the first one, whatever the player did. This was seen: the
+first test run ended with only twelve elements on the board.
+
+**Decision:** each element carries an `Armed` flag on its `Merge` component.
+The flag is set the first time the element is fully inside the death ring.
+`sys_game_over` counts armed elements only.
+
+**Reason:** an element which is not armed yet is one which is still falling.
+The rule is exact, needs no speed threshold to tune, and needs no new component.
+
+## 20. One global, not two
+
+`BUILD.md` section 10 asks for two globals, `start` and `restart`.
+
+**Decision:** one, `window.play()`. It resets the scene and sets the play state.
+
+**Reason:** "Play" and "Again" do the same thing. It also resumes the
+`AudioContext`, because a browser blocks audio until a gesture, and a click on
+either button is that gesture.

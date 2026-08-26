@@ -11,8 +11,10 @@
 
 import {instantiate} from "../lib/game.js";
 import {Game} from "./game.js";
+import {BREACH_LIMIT, DEATH_RADIUS} from "./game.js";
 import {ELEMENTS, TOP_TIER, blueprint_element} from "./scenes/blu_element.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
+import {sys_game_over} from "./systems/sys_game_over.js";
 import {sys_merge} from "./systems/sys_merge.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
@@ -48,6 +50,9 @@ function make_game(): Game {
         HitStop: 0,
         ShakeAmount: 0,
         BreachTime: 0,
+        WinTime: 0,
+        PlayState: "play",
+        BestScore: 0,
     } as unknown as Game;
 }
 
@@ -180,6 +185,49 @@ console.log("win");
     check("two top elements cancel out", count_elements(game) === 0, `got ${count_elements(game)}`);
     check("the win is recorded", game.Won);
     check("the win scores twice the tier", game.Score === ELEMENTS[TOP_TIER][1] * 2);
+}
+
+console.log("game over");
+{
+    let game = make_game();
+    // An element still falling in from the orbit circle is outside the death
+    // ring, but it must not start the timer.
+    let falling = instantiate(game, blueprint_element(0, [DEATH_RADIUS + 1.5, 0], [0, 0]));
+    sys_transform2d(game, STEP);
+    for (let i = 0; i < 60; i++) {
+        sys_game_over(game, STEP);
+    }
+    check("a falling element does not start the timer", game.BreachTime === 0);
+
+    // Bring it inside, so that it arms itself.
+    game.World.LocalTransform2D[falling].Translation[0] = 0;
+    sys_game_over(game, STEP);
+    check("an element inside the ring arms itself", game.World.Merge[falling].Armed);
+
+    // Push it back out. Now it counts.
+    game.World.LocalTransform2D[falling].Translation[0] = DEATH_RADIUS + 1;
+    for (let i = 0; i < 30; i++) {
+        sys_game_over(game, STEP);
+    }
+    check("an armed element over the line fills the timer", game.BreachTime > 0.4);
+
+    // Pull it back in. The timer empties twice as fast as it fills.
+    let peak = game.BreachTime;
+    game.World.LocalTransform2D[falling].Translation[0] = 0;
+    sys_game_over(game, STEP);
+    check(
+        "the timer empties at twice the speed",
+        Math.abs(game.BreachTime - (peak - 2 * STEP)) < 1e-9,
+    );
+
+    // Hold it out until the run ends.
+    game.World.LocalTransform2D[falling].Translation[0] = DEATH_RADIUS + 1;
+    game.Score = 42;
+    for (let i = 0; i < Math.ceil(BREACH_LIMIT / STEP) + 2; i++) {
+        sys_game_over(game, STEP);
+    }
+    check("the run ends after the limit", game.PlayState === "over");
+    check("the best score is kept", game.BestScore === 42);
 }
 
 console.log("chain");

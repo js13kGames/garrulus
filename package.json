@@ -21,7 +21,7 @@
         "test": "npm run lint && npm run ts:check && npm run test:sim",
         "ts:check": "tsc --noEmit",
         "ts:watch": "tsc --noEmit --watch -p .",
-        "test:sim": "esbuild src/selftest.ts --define:DEBUG=true --target=es2022 --bundle --format=esm --banner:js=\"globalThis.document={getElementById:()=>null};\" --outfile=selftest.mjs && node selftest.mjs"
+        "test:sim": "esbuild src/selftest.ts --define:DEBUG=true --target=es2022 --bundle --format=esm --banner:js=\"globalThis.document={getElementById:()=>null};globalThis.localStorage={};\" --outfile=selftest.mjs && node selftest.mjs"
     },
     "devDependencies": {
         "esbuild": "0.23",

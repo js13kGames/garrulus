@@ -19,6 +19,7 @@ import {
     HITSTOP_TIER,
     MERGE_COOLDOWN,
     SHAKE_PER_TIER,
+    WIN_BANNER,
 } from "../game.js";
 import {ELEMENTS, TOP_TIER} from "../scenes/blu_element.js";
 import {Has} from "../world.js";
@@ -88,6 +89,7 @@ function merge(game: Game, keep: number, gone: number) {
         destroy_entity(game.World, keep);
         game.Score += ELEMENTS[tier][1] * 2;
         game.Won = true;
+        game.WinTime = WIN_BANNER;
         game.ShakeAmount += SHAKE_PER_TIER * (tier + 2);
         game.HitStop = HITSTOP_BIG;
         return;

@@ -11,6 +11,7 @@ export function scene_stage(game: Game) {
     game.World = new World(game.World.Capacity);
     game.Score = 0;
     game.Won = false;
+    game.WinTime = 0;
     game.HitStop = 0;
     game.ShakeAmount = 0;
     game.BreachTime = 0;

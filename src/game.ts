@@ -5,6 +5,7 @@ import {sys_camera2d} from "./systems/sys_camera2d.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
 import {sys_control_cloud} from "./systems/sys_control_cloud.js";
 import {sys_draw} from "./systems/sys_draw.js";
+import {sys_game_over} from "./systems/sys_game_over.js";
 import {sys_merge} from "./systems/sys_merge.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
@@ -56,6 +57,10 @@ export const HITSTOP_SMALL = 2;
 export const HITSTOP_BIG = 4;
 /** The tier at which a merge earns the long freeze. */
 export const HITSTOP_TIER = 5;
+/** Seconds the mass may lean on the death ring before the game ends. */
+export const BREACH_LIMIT = 3;
+/** Seconds the win banner stays up. */
+export const WIN_BANNER = 3;
 
 export interface Contact {
     A: Entity;
@@ -71,10 +76,13 @@ export class Game extends Game2D {
     Contacts: Array<Contact> = [];
     ContactCount = 0;
 
+    PlayState: "title" | "play" | "over" = "title";
     Score = 0;
     BestScore = Number(localStorage["garrulus"]) || 0;
     /** Set when two Cosmic Unicorns meet. Play goes on. */
     Won = false;
+    /** Seconds left on the win banner. */
+    WinTime = 0;
 
     /** Seconds the mass has been over the death ring without a break. */
     BreachTime = 0;
@@ -85,8 +93,12 @@ export class Game extends Game2D {
     ShakeAmount = 0;
 
     override FixedUpdate(step: number) {
-        // Aiming stays live during the freeze.
-        sys_control_cloud(this, step);
+        // Aiming stays live during the freeze, but not on the title screen or
+        // after the loss. The pile keeps settling behind both overlays, which
+        // makes them feel part of the game and not a stop.
+        if (this.PlayState === "play") {
+            sys_control_cloud(this, step);
+        }
 
         // Hit stop: the world holds still for a few steps after a merge, which
         // is what makes the merge feel like an impact.
@@ -101,6 +113,9 @@ export class Game extends Game2D {
         sys_physics2d_resolve(this, step);
         sys_merge(this, step);
         sys_transform2d(this, step);
+        if (this.PlayState === "play") {
+            sys_game_over(this, step);
+        }
         sys_animate_pop(this, step);
     }
 

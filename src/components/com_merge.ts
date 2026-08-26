@@ -15,6 +15,15 @@ export interface Merge {
     Cooldown: number;
     /** Set for the two partners of a merge, to keep them out of other merges. */
     Merging: boolean;
+    /**
+     * Set once the element has been inside the death ring.
+     *
+     * An element is dropped on the orbit circle, which is outside the death
+     * ring, and it is outside the ring for the whole fall. Without this flag
+     * every element in flight would look like a breach, and the run would end
+     * a few seconds after the first drop whatever the player did.
+     */
+    Armed: boolean;
 }
 
 /**
@@ -30,6 +39,7 @@ export function merge(tier: number, cooldown = 0) {
             Tier: tier,
             Cooldown: cooldown,
             Merging: false,
+            Armed: false,
         };
     };
 }
