@@ -1,9 +1,11 @@
 import {Game2D} from "../lib/game.js";
 import {Entity} from "../lib/world.js";
+import {sys_animate_pop} from "./systems/sys_animate_pop.js";
 import {sys_camera2d} from "./systems/sys_camera2d.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
 import {sys_control_cloud} from "./systems/sys_control_cloud.js";
 import {sys_draw} from "./systems/sys_draw.js";
+import {sys_merge} from "./systems/sys_merge.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
 import {sys_resize2d} from "./systems/sys_resize2d.js";
@@ -43,6 +45,17 @@ export const SOLVER_ITERATIONS = 6;
 export const DROP_COOLDOWN = 0.35;
 /** How fast a dropped element leaves the cloud, in units per second. */
 export const DROP_SPEED = 4;
+/** Seconds a fresh element waits before it can merge again. */
+export const MERGE_COOLDOWN = 0.2;
+/** How big a fresh element starts, as a factor of its true size. */
+export const POP_SCALE = 1.35;
+/** Screen shake added for each tier of a merge. */
+export const SHAKE_PER_TIER = 0.012;
+/** Fixed steps the world freezes for after a merge. */
+export const HITSTOP_SMALL = 2;
+export const HITSTOP_BIG = 4;
+/** The tier at which a merge earns the long freeze. */
+export const HITSTOP_TIER = 5;
 
 export interface Contact {
     A: Entity;
@@ -58,13 +71,37 @@ export class Game extends Game2D {
     Contacts: Array<Contact> = [];
     ContactCount = 0;
 
+    Score = 0;
+    BestScore = Number(localStorage["garrulus"]) || 0;
+    /** Set when two Cosmic Unicorns meet. Play goes on. */
+    Won = false;
+
+    /** Seconds the mass has been over the death ring without a break. */
+    BreachTime = 0;
+
+    /** Fixed steps left to freeze the world. Rendering goes on. */
+    HitStop = 0;
+    /** How far the view is thrown off center, in world units. */
+    ShakeAmount = 0;
+
     override FixedUpdate(step: number) {
+        // Aiming stays live during the freeze.
         sys_control_cloud(this, step);
+
+        // Hit stop: the world holds still for a few steps after a merge, which
+        // is what makes the merge feel like an impact.
+        if (this.HitStop > 0) {
+            this.HitStop--;
+            return;
+        }
+
         sys_physics2d_integrate(this, step);
         sys_transform2d(this, step);
         sys_collide_circle(this, step);
         sys_physics2d_resolve(this, step);
+        sys_merge(this, step);
         sys_transform2d(this, step);
+        sys_animate_pop(this, step);
     }
 
     override FrameUpdate(delta: number) {

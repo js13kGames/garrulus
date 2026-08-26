@@ -191,3 +191,39 @@ for test tools.
 
 The pointer position for a touch is read on the release frame as well, because
 `InputState["Touch0X"]` keeps the last position after the touch is up.
+
+## 16. The scene primes the camera
+
+`scene_stage` runs `sys_resize2d`, `sys_transform2d`, and `sys_camera2d` once,
+and sets `ViewportResized` first.
+
+**Reason:** `sys_control_cloud` turns the pointer into a world angle with the
+camera projection and the camera world matrix. Both are made by systems which
+run in `FrameUpdate`, which comes after the first `FixedUpdate`. Without the
+priming, the first step reads a matrix of zeros and drops the element at angle
+0. On a restart the viewport size does not change, so `sys_resize2d` would skip
+the new camera; `ViewportResized` forces the update.
+
+## 17. Two Cosmic Unicorns cancel out
+
+`BUILD.md` section 7.5 says two top-tier elements win the game, and that play
+goes on, but it does not say what happens to the two elements.
+
+**Decision:** destroy both. Give twice the tier score, set `Won`, and shake the
+screen hard.
+
+**Reason:** there is no tier above the top one, so they cannot merge into
+anything. Removing both gives the board room back, which is the reward for the
+work, and it is what the games of this family do.
+
+## 18. There is one runnable check: `npm run test:sim`
+
+`src/selftest.ts` tests the contact search, the solver, and the merge rule
+without a browser. It builds a plain object in place of the `Game`, because
+those systems read `game.World` and the contact list only.
+
+`npm test` runs the format check, the type check, and this check.
+
+The build stubs `document.getElementById` with an esbuild banner, because
+`lib/game.ts` reads the debug elements when the module loads. The self test is
+never imported by `index.ts`, so it is not in the release bundle.

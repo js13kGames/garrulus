@@ -1,26 +1,27 @@
 {
-    "name": "goodluck",
+    "name": "garrulus",
     "version": "0.0.0",
     "private": true,
-    "description": "A template for creating small and fast browser games",
+    "description": "A physics puzzle: merge magical elements around a central gravity well",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/piesku/goodluck.git"
     },
     "contributors": [
-        "Staś Małolepszy <stas@piesku.com>",
-        "Michał Budzyński <michal@virtualdesign.pl>"
+        "Sta\u015b Ma\u0142olepszy <stas@piesku.com>",
+        "Micha\u0142 Budzy\u0144ski <michal@virtualdesign.pl>"
     ],
     "license": "ISC",
     "scripts": {
         "clean": "find . -type d -name node_modules -prune -o \\( -name '*.js' -o -name '*.js.map' \\) -exec rm {} +",
         "lint": "prettier --check \"**/*.ts\"",
         "pretty": "prettier --write \"**/*.ts\"",
-        "start": "esbuild */index.ts --define:DEBUG=true --target=es2020 --preserve-symlinks --bundle --sourcemap --outdir=. --outbase=. --color=false --servedir=. --serve=1234",
-        "build": "esbuild */index.ts --define:DEBUG=true --target=es2020 --preserve-symlinks --bundle --sourcemap --outdir=. --outbase=. --color=false",
-        "test": "npm run lint && npm run ts:check",
+        "start": "esbuild src/index.ts --define:DEBUG=true --target=es2022 --preserve-symlinks --bundle --sourcemap --outdir=. --outbase=. --color=false --servedir=. --serve=1234",
+        "build": "esbuild src/index.ts --define:DEBUG=true --target=es2022 --preserve-symlinks --bundle --sourcemap --outdir=. --outbase=. --color=false",
+        "test": "npm run lint && npm run ts:check && npm run test:sim",
         "ts:check": "tsc --noEmit",
-        "ts:watch": "tsc --noEmit --watch -p ."
+        "ts:watch": "tsc --noEmit --watch -p .",
+        "test:sim": "esbuild src/selftest.ts --define:DEBUG=true --target=es2022 --bundle --format=esm --banner:js=\"globalThis.document={getElementById:()=>null};\" --outfile=selftest.mjs && node selftest.mjs"
     },
     "devDependencies": {
         "esbuild": "0.23",
