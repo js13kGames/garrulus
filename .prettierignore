@@ -2,3 +2,7 @@ node_modules
 goodluck
 play/*.js
 *.js
+
+# Prettier reformats markdown lists in a way the project docs do not use.
+# Only the source tree is formatted; see the lint script.
+*.md
