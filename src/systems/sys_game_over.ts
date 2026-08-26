@@ -13,6 +13,7 @@
  */
 
 import {BREACH_LIMIT, DEATH_RADIUS, Game} from "../game.js";
+import {sound_over} from "../sounds.js";
 import {Has} from "../world.js";
 
 const QUERY = Has.LocalTransform2D | Has.CollideCircle | Has.Merge;
@@ -45,6 +46,7 @@ export function sys_game_over(game: Game, delta: number) {
 
     if (game.BreachTime >= BREACH_LIMIT) {
         game.PlayState = "over";
+        sound_over(game);
         if (game.Score > game.BestScore) {
             game.BestScore = game.Score;
             localStorage["garrulus"] = game.BestScore;

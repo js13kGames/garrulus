@@ -10,6 +10,7 @@
  * recursion.
  */
 
+import {instantiate} from "../../lib/game.js";
 import {destroy_entity} from "../../lib/world.js";
 import {animate_pop} from "../components/com_animate_pop.js";
 import {
@@ -22,6 +23,8 @@ import {
     WIN_BANNER,
 } from "../game.js";
 import {ELEMENTS, TOP_TIER} from "../scenes/blu_element.js";
+import {blueprint_pop_ring} from "../scenes/blu_pop_ring.js";
+import {sound_merge, sound_win} from "../sounds.js";
 import {Has} from "../world.js";
 
 export function sys_merge(game: Game, delta: number) {
@@ -82,6 +85,7 @@ function merge(game: Game, keep: number, gone: number) {
     let vy = (body_keep.Velocity[1] + body_gone.Velocity[1]) / 2;
 
     destroy_entity(game.World, gone);
+    instantiate(game, blueprint_pop_ring([x, y], ELEMENTS[tier][0]));
 
     if (tier === TOP_TIER) {
         // Two Cosmic Unicorns cancel each other out. The board gets room back,
@@ -92,6 +96,7 @@ function merge(game: Game, keep: number, gone: number) {
         game.WinTime = WIN_BANNER;
         game.ShakeAmount += SHAKE_PER_TIER * (tier + 2);
         game.HitStop = HITSTOP_BIG;
+        sound_win(game);
         return;
     }
 
@@ -113,4 +118,5 @@ function merge(game: Game, keep: number, gone: number) {
     game.Score += ELEMENTS[next][1];
     game.ShakeAmount += SHAKE_PER_TIER * next;
     game.HitStop = next < HITSTOP_TIER ? HITSTOP_SMALL : HITSTOP_BIG;
+    sound_merge(game, next);
 }

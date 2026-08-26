@@ -35,10 +35,31 @@ function check(name: string, condition: boolean, detail = "") {
 }
 
 /**
+ * An AudioContext which makes no sound.
+ *
+ * `sys_merge` and `sys_game_over` play notes. The notes are not what these
+ * checks are about, but the calls must not throw.
+ */
+function silent_audio() {
+    let param = {
+        setValueAtTime() {},
+        linearRampToValueAtTime() {},
+        exponentialRampToValueAtTime() {},
+    };
+    let node = {connect() {}, start() {}, stop() {}, gain: param, frequency: {value: 0}, type: ""};
+    return {
+        currentTime: 0,
+        destination: {},
+        createOscillator: () => node,
+        createGain: () => node,
+    };
+}
+
+/**
  * A Game with only the fields the simulation systems read.
  *
  * The cast goes through `unknown` on purpose: this object is deliberately not a
- * whole `Game`. It has no canvas, no audio, and no loop.
+ * whole `Game`. It has no canvas and no loop.
  */
 function make_game(): Game {
     return {
@@ -53,6 +74,7 @@ function make_game(): Game {
         WinTime: 0,
         PlayState: "play",
         BestScore: 0,
+        Audio: silent_audio(),
     } as unknown as Game;
 }
 

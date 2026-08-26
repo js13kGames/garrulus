@@ -10,7 +10,16 @@
 
 import {float, set_seed} from "../../lib/random.js";
 import {Entity} from "../../lib/world.js";
-import {BREACH_LIMIT, CAMERA_RADIUS, DEATH_RADIUS, Game, ORBIT_RADIUS} from "../game.js";
+import {
+    BREACH_LIMIT,
+    CAMERA_RADIUS,
+    DEATH_RADIUS,
+    Game,
+    ORBIT_RADIUS,
+    POP_RING_LIFE,
+    SHAKE_DECAY,
+    SHAKE_MAX,
+} from "../game.js";
 import {ELEMENTS} from "../scenes/blu_element.js";
 import {Has} from "../world.js";
 
@@ -34,6 +43,8 @@ for (let i = 0; i < 70; i++) {
 
 const QUERY_ELEMENT = Has.SpatialNode2D | Has.CollideCircle | Has.Merge;
 const QUERY_CLOUD = Has.SpatialNode2D | Has.DropCloud;
+// A pop ring is the only entity which has a lifespan but is not an element.
+const QUERY_RING = Has.SpatialNode2D | Has.Lifespan;
 
 /** Reused between frames so that the draw order costs no allocation. */
 let ordered: Array<Entity> = [];
@@ -65,9 +76,22 @@ export function sys_draw(game: Game, delta: number) {
     // without a change.
     ctx.scale(1, -1);
 
+    // Screen shake. The offset is in world units, so it is applied inside the
+    // camera transform. It decays here because sys_draw is the only reader.
+    if (game.ShakeAmount > 0.001) {
+        // Clamp on the way out, so that a long chain of merges cannot build a
+        // value which then takes seconds to decay away.
+        let shake = (game.ShakeAmount = Math.min(game.ShakeAmount, SHAKE_MAX));
+        ctx.translate(float(-shake, shake), float(-shake, shake));
+        game.ShakeAmount *= SHAKE_DECAY;
+    } else {
+        game.ShakeAmount = 0;
+    }
+
     draw_background(ctx);
     draw_rings(ctx, game.BreachTime / BREACH_LIMIT);
     draw_elements(game, ctx);
+    draw_rings_of_merges(game, ctx);
     draw_clouds(game, ctx);
 }
 
@@ -159,6 +183,31 @@ function draw_body(ctx: CanvasRenderingContext2D, radius: number, color: string)
     ctx.lineWidth = radius * 0.08;
     ctx.strokeStyle = "#00000040";
     ctx.stroke();
+
+    draw_face(ctx, radius);
+}
+
+/**
+ * Two sleepy eyes and a small smile.
+ *
+ * The theme is a sleepy unicorn, so the eyes are closed: two short arcs. Both
+ * are primitive paths, which keeps the cost of a face near nothing.
+ */
+function draw_face(ctx: CanvasRenderingContext2D, radius: number) {
+    ctx.strokeStyle = "#20123a";
+    ctx.lineWidth = radius * 0.09;
+    ctx.lineCap = "round";
+
+    let eye = radius * 0.3;
+    ctx.beginPath();
+    ctx.arc(-eye, radius * 0.12, radius * 0.2, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.moveTo(eye + radius * 0.2, radius * 0.12);
+    ctx.arc(eye, radius * 0.12, radius * 0.2, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, -radius * 0.1, radius * 0.22, 1.15 * Math.PI, 1.85 * Math.PI);
+    ctx.stroke();
 }
 
 function draw_clouds(game: Game, ctx: CanvasRenderingContext2D) {
@@ -196,6 +245,38 @@ function draw_clouds(game: Game, ctx: CanvasRenderingContext2D) {
         ctx.arc(0, 0.16, 0.46, 0, TAU);
         ctx.fill();
 
+        ctx.restore();
+    }
+}
+
+function draw_rings_of_merges(game: Game, ctx: CanvasRenderingContext2D) {
+    for (let ent = 0; ent < game.World.Signature.length; ent++) {
+        if ((game.World.Signature[ent] & QUERY_RING) !== QUERY_RING) {
+            continue;
+        }
+
+        let node = game.World.SpatialNode2D[ent];
+        let left = game.World.Lifespan[ent].Remaining / POP_RING_LIFE;
+
+        ctx.save();
+        ctx.transform(
+            node.World[0],
+            node.World[1],
+            node.World[2],
+            node.World[3],
+            node.World[4],
+            node.World[5],
+        );
+        // The transform carries the radius of the element which merged, so the
+        // ring is drawn in units of that radius: it starts at the rim and opens
+        // out while it fades.
+        ctx.globalAlpha = left * 0.7;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 0.1 * left;
+        ctx.beginPath();
+        ctx.arc(0, 0, 1 + 1.1 * (1 - left), 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
         ctx.restore();
     }
 }

@@ -12,6 +12,7 @@ import {Entity} from "../../lib/world.js";
 import {viewport_to_world} from "../components/com_camera2d.js";
 import {DROP_COOLDOWN, DROP_SPEED, Game, ORBIT_RADIUS} from "../game.js";
 import {blueprint_element} from "../scenes/blu_element.js";
+import {sound_drop} from "../sounds.js";
 import {Has} from "../world.js";
 
 const QUERY = Has.LocalTransform2D | Has.DropCloud;
@@ -94,5 +95,6 @@ function update(game: Game, entity: Entity, delta: number) {
         );
         cloud.NextTier = roll_tier();
         cloud.Cooldown = DROP_COOLDOWN;
+        sound_drop(game);
     }
 }

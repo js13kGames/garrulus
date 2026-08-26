@@ -6,6 +6,7 @@ import {sys_collide_circle} from "./systems/sys_collide_circle.js";
 import {sys_control_cloud} from "./systems/sys_control_cloud.js";
 import {sys_draw} from "./systems/sys_draw.js";
 import {sys_game_over} from "./systems/sys_game_over.js";
+import {sys_lifespan} from "./systems/sys_lifespan.js";
 import {sys_merge} from "./systems/sys_merge.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
@@ -61,6 +62,12 @@ export const HITSTOP_TIER = 5;
 export const BREACH_LIMIT = 3;
 /** Seconds the win banner stays up. */
 export const WIN_BANNER = 3;
+/** Seconds a merge ring stays visible. */
+export const POP_RING_LIFE = 0.35;
+/** How much of the shake is left after each frame. */
+export const SHAKE_DECAY = 0.86;
+/** The largest shake, in world units. */
+export const SHAKE_MAX = 0.5;
 
 export interface Contact {
     A: Entity;
@@ -117,6 +124,7 @@ export class Game extends Game2D {
             sys_game_over(this, step);
         }
         sys_animate_pop(this, step);
+        sys_lifespan(this, step);
     }
 
     override FrameUpdate(delta: number) {

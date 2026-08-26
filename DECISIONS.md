@@ -255,3 +255,34 @@ The rule is exact, needs no speed threshold to tune, and needs no new component.
 **Reason:** "Play" and "Again" do the same thing. It also resumes the
 `AudioContext`, because a browser blocks audio until a gesture, and a click on
 either button is that gesture.
+
+## 21. The pop ring has no component of its own
+
+A merge ring is an entity with `SpatialNode2D`, `LocalTransform2D`, and
+`Lifespan`, and nothing else. The transform scale carries the radius of the
+element which merged, and `sys_draw` finds a ring by looking for a lifespan on
+an entity which is not an element.
+
+**Reason:** a new component would be a new bit, a new array, and a new file, to
+hold two numbers which two existing components already hold.
+
+## 22. Shake decays in `sys_draw`
+
+`BUILD.md` section 6 gives the shake its own system in FrameUpdate.
+
+**Decision:** `sys_draw` applies the shake and decays it in the same place. The
+value is clamped to `SHAKE_MAX` on the way out, so a long chain of merges cannot
+build a number which then takes seconds to settle.
+
+**Reason:** `sys_draw` is the only reader. A separate file and a second loop
+over one number is not worth it.
+
+## 23. The drop sound is a low square blip, not noise
+
+`BUILD.md` section 9 asks for a noise tap on the drop.
+
+**Decision:** a 60 ms square wave at a low note.
+
+**Reason:** a noise source needs an `AudioBuffer` filled with random samples.
+That is more code than the whole rest of `sounds.ts`, for a sound which is
+almost under the merge pops.
