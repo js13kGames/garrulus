@@ -383,3 +383,39 @@ window:
 | 16 | 0.4 | 0.6 | 7 | 0 | 1.70 |
 
 Above `Fling` 0.45 the mode falls off a cliff. Keep it below that if you tune.
+
+## 29. Mode 4 "Maelstrom": the three constraints multiply
+
+The fourth mode runs all three tests together: the big top tiers of
+Claustrophobia in a tighter arena, the bumps and dead stars of Jagged Orbit, and
+the sweep-to-spin of Momentum.
+
+**The lesson:** the constraints multiply, they do not add. Built with the
+numbers each mode uses on its own -- the 40 percent tighter arena and three dead
+stars -- a run lasted 43 seconds, which made the combined mode the *shortest* of
+the five, shorter than Claustrophobia. Adding a third constraint on top of two
+does not make a mode a third harder; it cuts what room is left.
+
+**Decision:** the arena is 5 percent tighter than Classic, not 40, and there are
+two dead stars, not three. Everything else is taken from the other modes
+unchanged. The bumps and the exponential radii carry the "everything is bigger"
+part.
+
+Measured, four runs of each setting:
+
+| Arena | Dead stars | Seconds | Score |
+|---|---|---|---|
+| 8 / 6.8 | 2 | 43 | 989 |
+| 9 / 7.65 | 3 | 51 | 1250 |
+| 9.5 / 8.08 | 3 | 57 | 1436 |
+| **9.5 / 8** | **2** | **71** | **1943** |
+| 10 / 8.5 | 3 | 76 | 1919 |
+
+The arena size and the number of dead stars decide the length. The radius table
+hardly matters: at the same arena, the linear radii gave 60 seconds against 57
+for the exponential ones.
+
+**A note on the readings.** One run of a mode says very little. Two settings one
+step apart gave 33 and 95 seconds on a single run each. Every number in the
+tables above is the mean of four runs with different starting angles. Do not
+tune a mode on one run.

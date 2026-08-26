@@ -192,6 +192,38 @@ export const MODES: Array<Tuning> = [
         Bumps: 0,
         DeadStars: 0,
     },
+    {
+        // Mode 4: the three tests above, run together.
+        //
+        // Everything is bigger (the exponential radii of Claustrophobia, in an
+        // arena which is smaller), the elements are lumpy and there are dead
+        // stars (Jagged Orbit), and a sweep of the cloud spins the mass
+        // (Momentum).
+        //
+        // The three constraints multiply rather than add. At the 40 percent
+        // shrink of Claustrophobia with three dead stars, a run lasted 43
+        // seconds, which made this the shortest mode of the five. The arena is
+        // therefore only 5 percent tighter than Classic and there are two dead
+        // stars, not three. The bumps and the big top tiers do the rest of the
+        // work. See DECISIONS.md, decision 29.
+        Name: "Maelstrom",
+        Blurb: "All three at once. Tight, lumpy, and turning.",
+        OrbitRadius: 9.5,
+        DeathRadius: 8,
+        CenterPull: 16,
+        Drag: 0.4,
+        Bounce: 0.2,
+        Friction: 0.5,
+        Spin: 12,
+        SolverIterations: 8,
+        SubSteps: 3,
+        DropCooldown: 0.35,
+        DropSpeed: 8,
+        Fling: 0.45,
+        Radii: RADII_EXPONENTIAL,
+        Bumps: 2,
+        DeadStars: 2,
+    },
 ];
 
 /** The largest arena any mode uses. The star field is drawn to cover it. */
