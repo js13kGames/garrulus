@@ -149,3 +149,31 @@ recycled through the graveyard, so the number does not give the age.
 **Reason:** the rule must be the same for both partners of the merge, or both
 sides destroy each other. Which one survives does not matter, because the
 survivor takes the mass-weighted position of both.
+
+## 13. No `sys_gravity`
+
+`BUILD.md` section 6 gives the center pull its own system, which writes an
+`Acceleration` field that `sys_physics2d_integrate` then reads.
+
+**Decision:** apply the pull inside `sys_physics2d_integrate`. Delete the
+`Acceleration` field.
+
+**Reason:** there is one force in this game. A second loop over the same bodies,
+and a field to carry the result between them, gives nothing.
+
+## 14. The pull is 16, not 40; the drag is 0.9, not 0.4
+
+`BUILD.md` section 5 sets `CENTER_PULL = 40` and `DRAG = 0.4`.
+
+**Decision:** `CENTER_PULL = 16`, `DRAG = 0.9`, `BOUNCE = 0.1`.
+
+**Reason:** with 40 and 0.4, a body reaches about 28 units each second. In one
+fixed step that is 0.47 units, which is more than the radius of a Sparkle
+(0.45). Small elements pass through each other. 16 with 0.9 settles at about 18
+units each second, or 0.3 units in a step.
+
+Measured with 40 elements: the pile packs in about 4 seconds, then creeps at
+less than 0.3 units each second. The worst overlap that stays is 0.04 units.
+
+**If you tune these:** keep `CENTER_PULL / DRAG` below `27`, or the smallest
+elements start to tunnel. Raise `SOLVER_ITERATIONS` if the pile looks soft.

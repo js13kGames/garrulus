@@ -9,7 +9,10 @@
  */
 
 import {float, set_seed} from "../../lib/random.js";
+import {Entity} from "../../lib/world.js";
 import {CAMERA_RADIUS, DEATH_RADIUS, Game, ORBIT_RADIUS} from "../game.js";
+import {ELEMENTS} from "../scenes/blu_element.js";
+import {Has} from "../world.js";
 
 const TAU = Math.PI * 2;
 
@@ -29,6 +32,11 @@ for (let i = 0; i < 70; i++) {
     STARS.push(Math.cos(angle) * dist, Math.sin(angle) * dist, float(0.04, 0.09));
 }
 
+const QUERY_ELEMENT = Has.SpatialNode2D | Has.CollideCircle | Has.Merge;
+
+/** Reused between frames so that the draw order costs no allocation. */
+let ordered: Array<Entity> = [];
+
 export function sys_draw(game: Game, delta: number) {
     let camera_entity = game.Cameras[0];
     if (camera_entity === undefined) {
@@ -42,8 +50,7 @@ export function sys_draw(game: Game, delta: number) {
     ctx.fillStyle = "#080614";
     ctx.fillRect(0, 0, game.ViewportWidth, game.ViewportHeight);
 
-    // World space to pixels. Context2D has +Y down, the world has +Y up, so the
-    // second and fourth terms of the matrix are negated.
+    // World space to pixels.
     ctx.transform(
         (camera.Pv[0] * game.ViewportWidth) / 2,
         (-camera.Pv[1] * game.ViewportHeight) / 2,
@@ -52,9 +59,14 @@ export function sys_draw(game: Game, delta: number) {
         ((1 + camera.Pv[4]) * game.ViewportWidth) / 2,
         ((1 - camera.Pv[5]) * game.ViewportHeight) / 2,
     );
+    // The matrix above puts +Y down, as pixels go. Flip it, so that everything
+    // below draws in world coordinates with +Y up and world matrices apply
+    // without a change.
+    ctx.scale(1, -1);
 
     draw_background(ctx);
     draw_rings(ctx);
+    draw_elements(game, ctx);
 }
 
 function draw_background(ctx: CanvasRenderingContext2D) {
@@ -89,4 +101,58 @@ function draw_rings(ctx: CanvasRenderingContext2D) {
     ctx.arc(0, 0, ORBIT_RADIUS, 0, TAU);
     ctx.stroke();
     ctx.setLineDash([]);
+}
+
+function draw_elements(game: Game, ctx: CanvasRenderingContext2D) {
+    ordered.length = 0;
+    for (let ent = 0; ent < game.World.Signature.length; ent++) {
+        if ((game.World.Signature[ent] & QUERY_ELEMENT) === QUERY_ELEMENT) {
+            ordered.push(ent);
+        }
+    }
+    // Small elements first, so the big ones sit on top of the pile.
+    ordered.sort((a, b) => game.World.Merge[a].Tier - game.World.Merge[b].Tier);
+
+    for (let i = 0; i < ordered.length; i++) {
+        let ent = ordered[i];
+        let node = game.World.SpatialNode2D[ent];
+        let radius = game.World.CollideCircle[ent].Radius;
+        let color = ELEMENTS[game.World.Merge[ent].Tier][2];
+
+        ctx.save();
+        ctx.transform(
+            node.World[0],
+            node.World[1],
+            node.World[2],
+            node.World[3],
+            node.World[4],
+            node.World[5],
+        );
+        draw_body(ctx, radius, color);
+        ctx.restore();
+    }
+}
+
+function draw_body(ctx: CanvasRenderingContext2D, radius: number, color: string) {
+    // A light spot up and to the left gives the flat circle its volume.
+    let shade = ctx.createRadialGradient(
+        -radius * 0.35,
+        radius * 0.35,
+        radius * 0.1,
+        0,
+        0,
+        radius * 1.15,
+    );
+    shade.addColorStop(0, "#ffffff");
+    shade.addColorStop(0.35, color);
+    shade.addColorStop(1, color);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, TAU);
+    ctx.fillStyle = shade;
+    ctx.fill();
+
+    ctx.lineWidth = radius * 0.08;
+    ctx.strokeStyle = "#00000040";
+    ctx.stroke();
 }
