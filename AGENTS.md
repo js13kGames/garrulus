@@ -35,4 +35,4 @@ Also, always talk to me, and keep all the docs in ASD-STE 100.
 
 ---
 
-Remeber to commit after every logical piece, with short, one line commit messages, without adding a co-authors or anyone else than the default author (michal@virtualdesign.pl).
+Remeber to commit after every logical piece, with short, one line commit messages, without adding a co-authors or anyone else than the default author (michal@virtualdesign.pl). Remember to add bundle size to each commit message.

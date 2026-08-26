@@ -10,6 +10,7 @@ else
 endif
 
 all: index.html
+	@printf "Size gzipped: %s bytes\n" $(shell gzip index.html --stdout | wc -c | tr -d ' ')
 
 game.esbuild.js: $(SOURCES)
 	npx tsc --noEmit

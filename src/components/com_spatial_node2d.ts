@@ -11,9 +11,8 @@
 import {mat2d_create} from "../../lib/mat2d.js";
 import {Mat2D} from "../../lib/math.js";
 import {Entity} from "../../lib/world.js";
-import {FLOATS_PER_INSTANCE} from "../../materials/layout2d.js";
 import {Game} from "../game.js";
-import {Has, World} from "../world.js";
+import {FLOATS_PER_INSTANCE, Has, World} from "../world.js";
 
 export interface SpatialNode2D {
     /** Absolute matrix relative to the world. */

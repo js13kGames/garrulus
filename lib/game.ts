@@ -1,11 +1,10 @@
-import {RenderTarget} from "./framebuffer.js";
-import {GL_CULL_FACE, GL_DEPTH_TEST, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA} from "./webgl.js";
 import {Entity, WorldImpl, create_entity} from "./world.js";
 
 const update_span = document.getElementById("update");
 const delta_span = document.getElementById("delta");
 const fps_span = document.getElementById("fps");
-const step = 1 / 60;
+/** The fixed simulation step: 60 Hz. */
+export const STEP = 1 / 60;
 
 /**
  * The base Game class.
@@ -154,6 +153,7 @@ export abstract class GameImpl {
 
     Start() {
         let last = performance.now();
+        let accumulator = 0;
 
         let tick = (now: number) => {
             let delta = (now - last) / 1000;
@@ -162,6 +162,16 @@ export abstract class GameImpl {
             this.Running = requestAnimationFrame(tick);
 
             this.FrameSetup(delta);
+
+            // Clamp the accumulator to avoid the spiral of death after the tab
+            // has been in the background.
+            accumulator = Math.min(accumulator + delta, 10 * STEP);
+            while (accumulator >= STEP) {
+                accumulator -= STEP;
+                this.FixedUpdate(STEP);
+                this.FixedReset(STEP);
+            }
+
             this.FrameUpdate(delta);
             this.FrameReset(delta);
         };
@@ -201,6 +211,16 @@ export abstract class GameImpl {
         }
     }
 
+    FixedUpdate(step: number) {}
+
+    // Input deltas are consumed by the simulation, so they must be cleared
+    // after every fixed step, not once per frame.
+    FixedReset(step: number) {
+        for (let name in this.InputDelta) {
+            this.InputDelta[name] = 0;
+        }
+    }
+
     FrameUpdate(delta: number) {}
 
     FrameReset(delta: number) {
@@ -223,9 +243,9 @@ export abstract class GameImpl {
             this.InputDistance["Touch1"] = 0;
         }
 
-        for (let name in this.InputDelta) {
-            this.InputDelta[name] = 0;
-        }
+        // Input deltas are cleared in FixedReset, after the simulation has
+        // consumed them. Clearing them here too would drop a click that landed
+        // in a frame which ran no fixed step.
 
         let update = performance.now() - this.Now;
         if (update_span) {
@@ -241,130 +261,17 @@ export abstract class GameImpl {
 }
 
 /**
- * The base Game class for 3D games.
+ * The base Game class for 2D games drawn with the Context2D API.
  *
- * Stores references to the canvas elements and the WebGL2 context, as well as
- * Context2D instances for drawing behind and in front of the scene.
+ * garrulus draws vector shapes rather than sprites, so there is no WebGL
+ * context and no spritesheet: one canvas and one 2D context is all we need.
  */
-export abstract class Game3D extends GameImpl {
-    BackgroundCanvas = document.querySelector("#background")! as HTMLCanvasElement;
-    BackgroundContext = this.BackgroundCanvas.getContext("2d")!;
-
-    ForegroundCanvas = document.querySelector("#foreground")! as HTMLCanvasElement;
-    ForegroundContext = this.ForegroundCanvas.getContext("2d")!;
-
-    SceneCanvas = document.querySelector("#scene")! as HTMLCanvasElement;
-    Gl = this.SceneCanvas.getContext("webgl2")!;
+export abstract class Game2D extends GameImpl {
+    Canvas = document.querySelector("canvas")!;
+    Context = this.Canvas.getContext("2d")!;
 
     Audio = new AudioContext();
     Cameras: Array<Entity> = [];
-    Targets: Record<string, RenderTarget> = {};
-
-    constructor() {
-        super();
-
-        this.Gl.enable(GL_DEPTH_TEST);
-        this.Gl.enable(GL_CULL_FACE);
-
-        this.Gl.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    }
-}
-
-/**
- * Base Game class for XR games.
- *
- * XR games use the WebXR API's `requestAnimationFrame` to run the game loop.
- */
-export abstract class GameXR extends Game3D {
-    XrSupported = false;
-    XrSession?: XRSession;
-    XrSpace?: XRReferenceSpace;
-    // XrFrame can be used to check whether we're presenting to a VR display.
-    XrFrame?: XRFrame;
-    XrInputs: Record<string, XRInputSource> = {};
-
-    constructor() {
-        super();
-
-        this.Gl.enable(GL_DEPTH_TEST);
-        this.Gl.enable(GL_CULL_FACE);
-
-        this.Gl.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        if (navigator.xr) {
-            xr_init(this);
-        }
-    }
-
-    override Start() {
-        let last = performance.now();
-
-        let tick = (now: number, frame?: XRFrame) => {
-            let delta = (now - last) / 1000;
-            last = now;
-
-            if (frame) {
-                this.XrFrame = frame;
-                this.Running = this.XrFrame.session.requestAnimationFrame(tick);
-            } else {
-                this.XrFrame = undefined;
-                this.Running = requestAnimationFrame(tick);
-            }
-
-            this.FrameSetup(delta);
-            this.FrameUpdate(delta);
-            this.FrameReset(delta);
-        };
-
-        if (this.XrSession) {
-            this.Running = this.XrSession.requestAnimationFrame(tick);
-        } else {
-            this.Running = requestAnimationFrame(tick);
-        }
-    }
-
-    override Stop() {
-        if (this.XrSession) {
-            this.XrSession.cancelAnimationFrame(this.Running);
-        } else {
-            cancelAnimationFrame(this.Running);
-        }
-        this.Running = 0;
-    }
-
-    async EnterXR() {
-        let session = await navigator.xr.requestSession("immersive-vr");
-        session.updateRenderState({
-            baseLayer: new XRWebGLLayer(session, this.Gl),
-        });
-        this.XrSpace = await session.requestReferenceSpace("local");
-
-        this.Stop();
-        this.XrSession = session;
-        this.Start();
-
-        this.XrSession.addEventListener("end", () => {
-            this.Stop();
-            this.XrSession = undefined;
-            this.XrSpace = undefined;
-            this.XrFrame = undefined;
-            this.ViewportResized = true;
-            this.Start();
-        });
-    }
-
-    override FrameSetup(delta: number) {
-        super.FrameSetup(delta);
-
-        if (this.XrFrame) {
-            this.XrInputs = {};
-            for (let input of this.XrFrame.session.inputSources) {
-                if (input.gripSpace) {
-                    this.XrInputs[input.handedness] = input;
-                }
-            }
-        }
-    }
 }
 
 type Mixin<G extends GameImpl> = (game: G, entity: Entity) => void;
@@ -376,10 +283,4 @@ export function instantiate<G extends GameImpl>(game: G, blueprint: Blueprint<G>
         mixin(game, entity);
     }
     return entity;
-}
-
-// Implemented as a free function so that we can use async/await.
-async function xr_init(game: GameXR) {
-    await game.Gl.makeXRCompatible();
-    game.XrSupported = await navigator.xr.isSessionSupported("immersive-vr");
 }

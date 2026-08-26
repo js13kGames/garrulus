@@ -11,7 +11,7 @@
  */
 
 import {Game} from "../game.js";
-import {App} from "../ui/App.js";
+import {App} from "../ui.js";
 
 let prev: string;
 

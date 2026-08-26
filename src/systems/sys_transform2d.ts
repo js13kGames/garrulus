@@ -9,18 +9,12 @@
  *
  *     game.World.Signature[entity] |= Has.Dirty;
  *
- * A fast path for entities **without the `SpatialNode2D` component** skips the
- * computation of the `World` transformation matrix on the CPU. Instead, raw
- * position, rotation, and scale are stored in the instance array, and the
- * shader computes the transformation matrix from them. This is very fast and
- * can be used effectively for particles and background tiles.
- *
- * Entities **with the `SpatialNode2D` component** have their `World`
- * transformation matrix computed in the system, i.e. on the CPU. The `World`
- * matrices of their parents are taken into account. The data is stored in the
- * instance array implicitly, taking advantage of the fact that the `World`
- * property of the `SpatialNode2D` component is a view into the instance array
- * buffer.
+ * Entities must have both `LocalTransform2D` and `SpatialNode2D`. Their `World`
+ * matrix is computed here, on the CPU, and the `World` matrices of their
+ * parents are taken into account. The data is stored in the instance array
+ * implicitly, because the `World` property of `SpatialNode2D` is a view into
+ * that buffer. (The template also had a shader fast path for entities without
+ * `SpatialNode2D`; we draw with Context2D, so it is gone.)
  *
  * `sys_transform2d` doesn't depend on the order of entities in the world, but
  * it works best when parents are added before children. This is the default
@@ -41,39 +35,18 @@ import {
 } from "../../lib/mat2d.js";
 import {DEG_TO_RAD, Vec2} from "../../lib/math.js";
 import {Entity} from "../../lib/world.js";
-import {FLOATS_PER_INSTANCE} from "../../materials/layout2d.js";
 import {Game} from "../game.js";
 import {Has} from "../world.js";
 
-const QUERY_DIRTY = Has.LocalTransform2D | Has.Dirty;
+const QUERY_DIRTY = Has.LocalTransform2D | Has.SpatialNode2D | Has.Dirty;
 const QUERY_NODE = Has.LocalTransform2D | Has.SpatialNode2D;
 
 export function sys_transform2d(game: Game, delta: number) {
     for (let ent = 0; ent < game.World.Signature.length; ent++) {
         if ((game.World.Signature[ent] & QUERY_DIRTY) === QUERY_DIRTY) {
-            if (game.World.Signature[ent] & Has.SpatialNode2D) {
-                update_spatial_node(game, ent);
-            } else {
-                // Fast path for top-level transforms which aren't scene graph
-                // nodes (they can't be parents nor children).
-                update_instance_data(game, ent);
-            }
+            update_spatial_node(game, ent);
         }
     }
-}
-
-// Write translation, rotation, and scale directly into the instance data
-// buffer. The model matrix will be computed from them in the shader.
-function update_instance_data(game: Game, entity: Entity) {
-    game.World.Signature[entity] &= ~Has.Dirty;
-
-    let local = game.World.LocalTransform2D[entity];
-    let instance_offset = entity * FLOATS_PER_INSTANCE;
-    game.World.InstanceData[instance_offset + 0] = local.Scale[0];
-    game.World.InstanceData[instance_offset + 1] = local.Scale[1];
-    game.World.InstanceData[instance_offset + 2] = local.Rotation * DEG_TO_RAD;
-    game.World.InstanceData[instance_offset + 4] = local.Translation[0];
-    game.World.InstanceData[instance_offset + 5] = local.Translation[1];
 }
 
 const world_position: Vec2 = [0, 0];
