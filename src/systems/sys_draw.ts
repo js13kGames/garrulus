@@ -33,6 +33,7 @@ for (let i = 0; i < 70; i++) {
 }
 
 const QUERY_ELEMENT = Has.SpatialNode2D | Has.CollideCircle | Has.Merge;
+const QUERY_CLOUD = Has.SpatialNode2D | Has.DropCloud;
 
 /** Reused between frames so that the draw order costs no allocation. */
 let ordered: Array<Entity> = [];
@@ -67,6 +68,7 @@ export function sys_draw(game: Game, delta: number) {
     draw_background(ctx);
     draw_rings(ctx);
     draw_elements(game, ctx);
+    draw_clouds(game, ctx);
 }
 
 function draw_background(ctx: CanvasRenderingContext2D) {
@@ -155,4 +157,43 @@ function draw_body(ctx: CanvasRenderingContext2D, radius: number, color: string)
     ctx.lineWidth = radius * 0.08;
     ctx.strokeStyle = "#00000040";
     ctx.stroke();
+}
+
+function draw_clouds(game: Game, ctx: CanvasRenderingContext2D) {
+    for (let ent = 0; ent < game.World.Signature.length; ent++) {
+        if ((game.World.Signature[ent] & QUERY_CLOUD) !== QUERY_CLOUD) {
+            continue;
+        }
+
+        let node = game.World.SpatialNode2D[ent];
+        let cloud = game.World.DropCloud[ent];
+
+        ctx.save();
+        ctx.transform(
+            node.World[0],
+            node.World[1],
+            node.World[2],
+            node.World[3],
+            node.World[4],
+            node.World[5],
+        );
+
+        // The cloud points at the center, so local +Y is the way the element
+        // falls. The preview element hangs there, under the cloud.
+        let [radius, , color] = ELEMENTS[cloud.NextTier];
+        ctx.globalAlpha = cloud.Cooldown > 0 ? 0.25 : 0.75;
+        draw_body(ctx, radius, color);
+        ctx.globalAlpha = 1;
+
+        // A blob of three overlapping circles.
+        ctx.translate(0, -0.75);
+        ctx.fillStyle = "#e8e4ff";
+        ctx.beginPath();
+        ctx.arc(-0.42, 0, 0.34, 0, TAU);
+        ctx.arc(0.42, 0, 0.34, 0, TAU);
+        ctx.arc(0, 0.16, 0.46, 0, TAU);
+        ctx.fill();
+
+        ctx.restore();
+    }
 }

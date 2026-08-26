@@ -177,3 +177,17 @@ less than 0.3 units each second. The worst overlap that stays is 0.04 units.
 
 **If you tune these:** keep `CENTER_PULL / DRAG` below `27`, or the smallest
 elements start to tunnel. Raise `SOLVER_ITERATIONS` if the pile looks soft.
+
+## 15. The drop fires on release, not on press
+
+**Decision:** `sys_control_cloud` drops when `InputDelta["Mouse0"]` or
+`InputDelta["Touch0"]` is `-1`.
+
+**Reason:** a press writes `1` into `InputDelta`, and the release writes `-1`
+over it. If both happen between two fixed steps, the press is lost and no
+element drops. The release is always the last write, so it always survives to
+the next fixed step. This was seen with a fast click; it is not only a problem
+for test tools.
+
+The pointer position for a touch is read on the release frame as well, because
+`InputState["Touch0X"]` keeps the last position after the touch is up.

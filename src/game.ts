@@ -2,6 +2,7 @@ import {Game2D} from "../lib/game.js";
 import {Entity} from "../lib/world.js";
 import {sys_camera2d} from "./systems/sys_camera2d.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
+import {sys_control_cloud} from "./systems/sys_control_cloud.js";
 import {sys_draw} from "./systems/sys_draw.js";
 import {sys_physics2d_integrate} from "./systems/sys_physics2d_integrate.js";
 import {sys_physics2d_resolve} from "./systems/sys_physics2d_resolve.js";
@@ -38,6 +39,10 @@ export const BOUNCE = 0.1;
 export const SPIN = 12;
 /** Passes of the contact solver in one fixed step. */
 export const SOLVER_ITERATIONS = 6;
+/** Seconds between two drops. */
+export const DROP_COOLDOWN = 0.35;
+/** How fast a dropped element leaves the cloud, in units per second. */
+export const DROP_SPEED = 4;
 
 export interface Contact {
     A: Entity;
@@ -54,6 +59,7 @@ export class Game extends Game2D {
     ContactCount = 0;
 
     override FixedUpdate(step: number) {
+        sys_control_cloud(this, step);
         sys_physics2d_integrate(this, step);
         sys_transform2d(this, step);
         sys_collide_circle(this, step);
