@@ -19,7 +19,6 @@
  */
 
 import {Deg, Vec2} from "../../lib/math.js";
-import {vec2_copy} from "../../lib/vec2.js";
 import {Entity} from "../../lib/world.js";
 import {Game} from "../game.js";
 import {Has} from "../world.js";
@@ -59,84 +58,5 @@ export function local_transform2d(
             Rotation: rotation,
             Scale: scale,
         };
-    };
-}
-
-/**
- * Set position in the entity's transform.
- *
- * This mixin must be used after `local_transform2d()` in order to ensure that
- * the entity already has the `LocalTransform2D` component.
- *
- * @param x The X coordinate, relative to the parent.
- * @param y The Y coordinate, relative to the parent.
- */
-export function set_position(x: number, y: number) {
-    return (game: Game, entity: Entity) => {
-        let local = game.World.LocalTransform2D[entity];
-        local.Translation[0] = x;
-        local.Translation[1] = y;
-    };
-}
-
-/**
- * Copy a position into the entity's local transform.
- *
- * This mixin must be used after `local_transform2d()` in order to ensure that
- * the entity already has the `LocalTransform2D` component.
- *
- * @param translation Local translation relative to the parent.
- */
-export function copy_position(translation: Vec2) {
-    return (game: Game, entity: Entity) => {
-        let local = game.World.LocalTransform2D[entity];
-        vec2_copy(local.Translation, translation);
-    };
-}
-
-/**
- * Set rotation in the entity's transform.
- *
- * This mixin must be used after `local_transform2d()` in order to ensure that
- * the entity already has the `LocalTransform2D` component.
- *
- * @param z The rotation in degrees, relative to the parent.
- */
-export function set_rotation(z: number) {
-    return (game: Game, entity: Entity) => {
-        let local = game.World.LocalTransform2D[entity];
-        local.Rotation = z;
-    };
-}
-
-/**
- * Set scale in the entity's transform.
- *
- * This mixin must be used after `local_transform2d()` in order to ensure that
- * the entity already has the `LocalTransform2D` component.
- *
- * @param x The X scale, relative to the parent.
- * @param y The Y scale, relative to the parent.
- */
-export function set_scale(x: number, y: number) {
-    return (game: Game, entity: Entity) => {
-        let local = game.World.LocalTransform2D[entity];
-        local.Scale[0] = x;
-        local.Scale[1] = y;
-    };
-}
-
-/**
- * Copy a scale vector into the entity's local transform.
- *
- * This mixin must be used after `local_transform2d()` in order to ensure that
- * the entity already has the `LocalTransform2D` component.
- *
- * @param scale Local scale relative to the parent.
- */
-export function copy_scale(scale: Vec2) {
-    return (game: Game, entity: Entity) => {
-        let local = game.World.LocalTransform2D[entity];
-        vec2_copy(local.Scale, scale);
     };
 }

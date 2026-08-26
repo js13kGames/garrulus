@@ -4,10 +4,7 @@
         "module": "es2022",
         "moduleResolution": "bundler",
         "strict": true,
-        "noImplicitOverride": true,
+        "noImplicitOverride": true
     },
-    "exclude": [
-        "node_modules",
-        "goodluck"
-    ]
+    "exclude": ["node_modules", "goodluck"]
 }

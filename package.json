@@ -8,8 +8,8 @@
         "url": "git+https://github.com/piesku/goodluck.git"
     },
     "contributors": [
-        "Sta\u015b Ma\u0142olepszy <stas@piesku.com>",
-        "Micha\u0142 Budzy\u0144ski <michal@virtualdesign.pl>"
+        "Staś Małolepszy <stas@piesku.com>",
+        "Michał Budzyński <michal@virtualdesign.pl>"
     ],
     "license": "ISC",
     "scripts": {

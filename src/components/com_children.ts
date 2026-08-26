@@ -45,24 +45,6 @@ export function children(...blueprints: Array<Blueprint<Game>>) {
 }
 
 /**
- * Yield descendants matching a component mask. Start at the current entity.
- *
- * @param world World object which stores the component data.
- * @param entity Parent entity to traverse.
- * @param mask Component mask to look for.
- */
-export function* query_down(world: World, entity: Entity, mask: Has): IterableIterator<Entity> {
-    if ((world.Signature[entity] & mask) === mask) {
-        yield entity;
-    }
-    if (world.Signature[entity] & Has.Children) {
-        for (let child of world.Children[entity].Children) {
-            yield* query_down(world, child, mask);
-        }
-    }
-}
-
-/**
  * Delete the entity with all its descendants.
  *
  * @param world World object which stores the component data.

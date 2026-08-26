@@ -12,7 +12,7 @@ import {mat2d_create} from "../../lib/mat2d.js";
 import {Mat2D} from "../../lib/math.js";
 import {Entity} from "../../lib/world.js";
 import {Game} from "../game.js";
-import {FLOATS_PER_INSTANCE, Has, World} from "../world.js";
+import {FLOATS_PER_INSTANCE, Has} from "../world.js";
 
 export interface SpatialNode2D {
     /** Absolute matrix relative to the world. */
@@ -50,22 +50,4 @@ export function spatial_node2d(is_gyroscope = false) {
             IsGyroscope: is_gyroscope,
         };
     };
-}
-
-/**
- * Yield ascendants matching a component mask. Start at the current entity.
- *
- * @param world World object which stores the component data.
- * @param entity The first entity to test.
- * @param mask Component mask to look for.
- */
-export function* query_up(world: World, entity: Entity, mask: Has): IterableIterator<Entity> {
-    if ((world.Signature[entity] & mask) === mask) {
-        yield entity;
-    }
-
-    let parent = world.SpatialNode2D[entity].Parent;
-    if (parent !== undefined) {
-        yield* query_up(world, parent, mask);
-    }
 }

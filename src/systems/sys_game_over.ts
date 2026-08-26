@@ -12,7 +12,7 @@
  * the ring, so an unarmed element is simply one which is still falling.
  */
 
-import {BREACH_LIMIT, DEATH_RADIUS, Game} from "../game.js";
+import {BREACH_LIMIT, DEATH_RADIUS, Game, STORE_KEY} from "../game.js";
 import {sound_over} from "../sounds.js";
 import {Has} from "../world.js";
 
@@ -49,7 +49,12 @@ export function sys_game_over(game: Game, delta: number) {
         sound_over(game);
         if (game.Score > game.BestScore) {
             game.BestScore = game.Score;
-            localStorage["garrulus"] = game.BestScore;
+            try {
+                localStorage[STORE_KEY] = game.BestScore;
+            } catch {
+                // A browser which refuses to store must not end the run with an
+                // error. The score is still on the screen.
+            }
         }
     }
 }

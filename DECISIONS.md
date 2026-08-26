@@ -200,8 +200,7 @@ and sets `ViewportResized` first.
 **Reason:** `sys_control_cloud` turns the pointer into a world angle with the
 camera projection and the camera world matrix. Both are made by systems which
 run in `FrameUpdate`, which comes after the first `FixedUpdate`. Without the
-priming, the first step reads a matrix of zeros and drops the element at angle
-0. On a restart the viewport size does not change, so `sys_resize2d` would skip
+priming, the first step reads a matrix of zeros and drops the element at angle 0. On a restart the viewport size does not change, so `sys_resize2d` would skip
 the new camera; `ViewportResized` forces the update.
 
 ## 17. Two Cosmic Unicorns cancel out
@@ -286,3 +285,20 @@ over one number is not worth it.
 **Reason:** a noise source needs an `AudioBuffer` filled with random samples.
 That is more code than the whole rest of `sounds.ts`, for a sound which is
 almost under the merge pops.
+
+## 24. The squeeze stopped early
+
+`BUILD.md` section 12 sets a budget of 13 KB and section 13 gives milestone 7 to
+name squeezing and dead code sweeps.
+
+**Decision:** the sweep removed `lib/number.ts` (nothing imported it),
+`query_up`, `query_down`, and the five unused transform mixins. Roadroller is
+on. Nothing was renamed by hand.
+
+**Reason:** the build is 6.0 KB zipped, which is 46 percent of the budget. Hand
+squeezing costs readability and buys nothing here. Do it when a feature pushes
+the number near 12 KB, not before. esbuild removes unused exports on its own,
+so a helper which nothing calls costs no bytes, only reading time.
+
+Measured budget against `BUILD.md` section 12, gzipped: 6.2 KB used of the 13 KB
+target, with 3.0 KB of the plan set aside as headroom.

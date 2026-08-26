@@ -93,6 +93,50 @@ export function sys_draw(game: Game, delta: number) {
     draw_elements(game, ctx);
     draw_rings_of_merges(game, ctx);
     draw_clouds(game, ctx);
+
+    if (DEBUG) {
+        // KeyG shows the contacts and the pull vectors. esbuild is given
+        // --define:DEBUG=false for the release, so terser drops all of this.
+        if (game.InputDelta["KeyG"] === 1) {
+            debug_on = !debug_on;
+        }
+        if (debug_on) {
+            draw_debug(game, ctx);
+        }
+    }
+}
+
+let debug_on = false;
+
+function draw_debug(game: Game, ctx: CanvasRenderingContext2D) {
+    // Every contact found this step, as a line between the two centers.
+    ctx.strokeStyle = "#ff2d55";
+    ctx.lineWidth = 0.04;
+    ctx.beginPath();
+    for (let i = 0; i < game.ContactCount; i++) {
+        let contact = game.Contacts[i];
+        let a = game.World.LocalTransform2D[contact.A].Translation;
+        let b = game.World.LocalTransform2D[contact.B].Translation;
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+    }
+    ctx.stroke();
+
+    // The pull on each body, drawn as a stub toward the center.
+    ctx.strokeStyle = "#4dd0ff";
+    ctx.lineWidth = 0.03;
+    ctx.beginPath();
+    for (let ent = 0; ent < game.World.Signature.length; ent++) {
+        if ((game.World.Signature[ent] & QUERY_ELEMENT) === QUERY_ELEMENT) {
+            let p = game.World.LocalTransform2D[ent].Translation;
+            let length = Math.hypot(p[0], p[1]);
+            if (length > 0) {
+                ctx.moveTo(p[0], p[1]);
+                ctx.lineTo(p[0] * (1 - 0.6 / length), p[1] * (1 - 0.6 / length));
+            }
+        }
+    }
+    ctx.stroke();
 }
 
 function draw_background(ctx: CanvasRenderingContext2D) {

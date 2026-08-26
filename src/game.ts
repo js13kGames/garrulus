@@ -85,7 +85,7 @@ export class Game extends Game2D {
 
     PlayState: "title" | "play" | "over" = "title";
     Score = 0;
-    BestScore = Number(localStorage["garrulus"]) || 0;
+    BestScore = load_best();
     /** Set when two Cosmic Unicorns meet. Play goes on. */
     Won = false;
     /** Seconds left on the win banner. */
@@ -132,6 +132,23 @@ export class Game extends Game2D {
         sys_camera2d(this, delta);
         sys_draw(this, delta);
         sys_ui(this, delta);
+    }
+}
+
+/** The key the best score is kept under. */
+export const STORE_KEY = "garrulus";
+
+/**
+ * Read the best score.
+ *
+ * A browser can refuse localStorage: private windows and blocked site data both
+ * throw on access. The game must still start.
+ */
+export function load_best() {
+    try {
+        return Number(localStorage[STORE_KEY]) || 0;
+    } catch {
+        return 0;
     }
 }
 

@@ -8,7 +8,7 @@
             "group": "build",
             "type": "npm",
             "script": "start",
-            "isBackground": true,
+            "isBackground": true
         },
         {
             "label": "tsc --noEmit (watch for file changes and type-check)",
@@ -16,7 +16,7 @@
             "type": "npm",
             "script": "ts:watch",
             "isBackground": true,
-            "problemMatcher": "$tsc-watch",
+            "problemMatcher": "$tsc-watch"
         },
         {
             "label": "All (default)",
@@ -26,7 +26,7 @@
             },
             "dependsOn": [
                 "esbuild (transpile, bundle, serve)",
-                "tsc --noEmit (watch for file changes and type-check)",
+                "tsc --noEmit (watch for file changes and type-check)"
             ],
             "runOptions": {
                 "runOn": "folderOpen"

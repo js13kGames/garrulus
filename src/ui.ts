@@ -34,7 +34,7 @@ export function App(game: Game) {
             style="position:absolute;top:8vmin;left:2.5vmin;color:#9f97d0;
             font:600 2.6vmin/1 system-ui,sans-serif"
         >
-            best ${game.BestScore}
+            best ${game.BestScore}${game.Won ? " ★" : ""}
         </div>
         ${game.WinTime > 0
             ? html`<div
