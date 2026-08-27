@@ -80,6 +80,9 @@ move, which is how the dead stars work.
   first written could not work; the entries say what was wrong and how it was
   found.
 - `AGENTS.md` — how to work in this repository.
+- `GOODLUCK.md` — how to build a game with Goodluck at all: which generation you
+  have, what the template does not do, and the traps. Written for whoever starts
+  the next one.
 
 ## Run it
 
