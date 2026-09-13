@@ -2,15 +2,14 @@ import {Game, load_best} from "./game.js";
 import {scene_stage} from "./scenes/sce_stage.js";
 
 let game = new Game();
-scene_stage(game, 0);
+scene_stage(game);
 game.Start();
 
-// The two globals the UI needs. `play` starts a mode; the "Again" button and
-// every card on the title screen call it.
+// The UI calls this global to start or restart a run.
 // @ts-ignore
-window.play = (mode: number) => {
-    scene_stage(game, mode);
-    game.BestScore = load_best(mode);
+window.play = () => {
+    scene_stage(game);
+    game.BestScore = load_best();
     game.PlayState = "play";
     // Browsers block audio until a gesture. This click is that gesture.
     game.Audio.resume();

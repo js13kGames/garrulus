@@ -12,7 +12,7 @@
 import {instantiate} from "../lib/game.js";
 import {Game} from "./game.js";
 import {BREACH_LIMIT} from "./game.js";
-import {MODES} from "./modes.js";
+import {TUNING, Tuning} from "./modes.js";
 import {SCORES, TOP_TIER, blueprint_element} from "./scenes/blu_element.js";
 import {blueprint_star} from "./scenes/blu_star.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
@@ -64,7 +64,7 @@ function silent_audio() {
  * The cast goes through `unknown` on purpose: this object is deliberately not a
  * whole `Game`. It has no canvas and no loop.
  */
-function make_game(mode = 0): Game {
+function make_game(tuning: Tuning = TUNING): Game {
     return {
         World: new World(64),
         Contacts: [],
@@ -78,10 +78,13 @@ function make_game(mode = 0): Game {
         PlayState: "play",
         BestScore: 0,
         RunTime: 0,
-        Mode: mode,
-        Tuning: MODES[mode],
+        Tuning: tuning,
         Audio: silent_audio(),
     } as unknown as Game;
+}
+
+function plain_game() {
+    return make_game({...TUNING, Bumps: 0, ScaleCenter: 1, ScaleEdge: 1});
 }
 
 function count_elements(game: Game) {
@@ -119,7 +122,7 @@ function step(game: Game, pull = false) {
 
 console.log("contacts");
 {
-    let game = make_game();
+    let game = plain_game();
     let a = instantiate(game, blueprint_element(game, 0, [0, 0], [0, 0]));
     let b = instantiate(game, blueprint_element(game, 0, [0.5, 0], [0, 0]));
     let far = instantiate(game, blueprint_element(game, 0, [5, 0], [0, 0]));
@@ -139,7 +142,7 @@ console.log("contacts");
 
 console.log("solver");
 {
-    let game = make_game();
+    let game = plain_game();
     // Two Sparkles almost on top of each other. Radius 0.45 each, so they must
     // end up about 0.9 apart.
     let a = instantiate(game, blueprint_element(game, 0, [0, 0], [0, 0]));
@@ -151,7 +154,7 @@ console.log("solver");
         step(game);
     }
     let gap = distance(game, a, b);
-    let sum = MODES[0].Radii[0] * 2;
+    let sum = game.World.CollideCircle[a].Radius + game.World.CollideCircle[b].Radius;
     check("the solver pushes an overlap apart", gap > sum - 0.02, `gap ${gap.toFixed(4)}`);
     check("the solver does not overshoot", gap < sum + 0.02, `gap ${gap.toFixed(4)}`);
 }
@@ -171,13 +174,19 @@ console.log("merge");
         }
     }
     check("the survivor is one tier up", game.World.Merge[survivor].Tier === 3);
-    check(
-        "the collider grows to the new radius",
-        game.World.CollideCircle[survivor].Radius === MODES[0].Radii[3],
-    );
+    let collider = game.World.CollideCircle[survivor];
+    let merged_radius = 0;
+    for (let i = 0; i < collider.BaseParts.length; i += 3) {
+        merged_radius = Math.max(
+            merged_radius,
+            Math.hypot(collider.BaseParts[i], collider.BaseParts[i + 1]) +
+                collider.BaseParts[i + 2],
+        );
+    }
+    check("the collider grows to the new shape", collider.Radius === merged_radius);
     check(
         "the mass follows the new radius",
-        Math.abs(game.World.RigidBody2D[survivor].InverseMass - 1 / MODES[0].Radii[3] ** 2) < 1e-9,
+        Math.abs(game.World.RigidBody2D[survivor].InverseMass - 1 / TUNING.Radii[3] ** 2) < 1e-9,
     );
     check(
         "the survivor sits between the two",
@@ -220,7 +229,7 @@ console.log("game over");
     let game = make_game();
     // An element still falling in from the orbit circle is outside the death
     // ring, but it must not start the timer.
-    let death = MODES[0].DeathRadius;
+    let death = TUNING.DeathRadius;
     let falling = instantiate(game, blueprint_element(game, 0, [death + 1.5, 0], [0, 0]));
     sys_transform2d(game, STEP);
     for (let i = 0; i < 60; i++) {
@@ -259,32 +268,23 @@ console.log("game over");
     check("the best score is kept", game.BestScore === 42);
 }
 
-console.log("modes: bumps");
+console.log("shape: bumps");
 {
-    // Mode 2 gives every element bumps, so one pair can make several contacts.
-    let jagged = make_game(2);
-    let a = instantiate(jagged, blueprint_element(jagged, 4, [0, 0], [0, 0]));
+    let game = make_game();
+    let element = instantiate(game, blueprint_element(game, 4, [0, 0], [0, 0]));
     check(
-        "a jagged element is more than one circle",
-        jagged.World.CollideCircle[a].Parts.length === 3 * (1 + MODES[2].Bumps),
+        "an element has its configured bumps",
+        game.World.CollideCircle[element].Parts.length === 3 * (1 + TUNING.Bumps),
     );
     check(
         "the bumps stay inside the radius which holds the shape",
-        jagged.World.CollideCircle[a].Radius >= MODES[2].Radii[4] * 0.9,
-    );
-
-    let plain = make_game(0);
-    let b = instantiate(plain, blueprint_element(plain, 4, [0, 0], [0, 0]));
-    check("a plain element is one circle", plain.World.CollideCircle[b].Parts.length === 3);
-    check(
-        "a plain element keeps the radius of its tier",
-        plain.World.CollideCircle[b].Radius === MODES[0].Radii[4],
+        game.World.CollideCircle[element].Radius >= TUNING.Radii[4] * 0.9,
     );
 }
 
-console.log("modes: dead stars");
+console.log("shape: dead stars");
 {
-    let game = make_game(2);
+    let game = make_game();
     let star = instantiate(game, blueprint_star([0, 0]));
     let element = instantiate(game, blueprint_element(game, 0, [0.5, 0], [-8, 0]));
     // Stop the two from merging; a star has no Merge anyway.
@@ -299,17 +299,12 @@ console.log("modes: dead stars");
     );
 }
 
-console.log("modes: friction");
+console.log("physics: friction");
 {
-    // Two elements sliding past each other. With friction the sliding is taken
-    // away; without it, it is kept.
-    function slide(mode: number) {
-        let game = make_game(mode);
+    function slide(friction: number) {
+        let game = make_game({...TUNING, Friction: friction});
         let a = instantiate(game, blueprint_element(game, 4, [0, 0], [0, 4]));
-        let b = instantiate(
-            game,
-            blueprint_element(game, 4, [MODES[mode].Radii[4] * 1.9, 0], [0, -4]),
-        );
+        let b = instantiate(game, blueprint_element(game, 4, [TUNING.Radii[4] * 1.9, 0], [0, -4]));
         game.World.Merge[a].Cooldown = 999;
         game.World.Merge[b].Cooldown = 999;
         sys_transform2d(game, STEP);
@@ -321,19 +316,16 @@ console.log("modes: friction");
     }
 
     let free = slide(0);
-    let gripped = slide(3);
+    let gripped = slide(TUNING.Friction);
     check("without friction the sliding is kept", free > 7.5, `${free.toFixed(2)}`);
     check("with friction the sliding is cut", gripped < free * 0.7, `${gripped.toFixed(2)}`);
 }
 
-console.log("modes: fling");
+console.log("physics: fling");
 {
-    // A throw straight at the middle carries no turning force about the middle,
-    // whatever its mass. The "Momentum" mode therefore gives the element the
-    // sideways sweep of the cloud; without it the mode cannot spin anything.
-    function angular_momentum(mode: number, swing: number) {
-        let game = make_game(mode);
-        let tuning = MODES[mode];
+    function angular_momentum(swing: number) {
+        let game = make_game();
+        let tuning = TUNING;
         let angle = 0.7;
         let sideways = tuning.Fling * swing * tuning.OrbitRadius;
         let cos = Math.cos(angle);
@@ -355,25 +347,22 @@ console.log("modes: fling");
         return p[0] * v[1] - p[1] * v[0];
     }
 
+    check("a throw at the middle carries no turning force", Math.abs(angular_momentum(0)) < 1e-9);
     check(
-        "a throw at the middle carries no turning force",
-        Math.abs(angular_momentum(0, 3)) < 1e-9,
-    );
-    check(
-        "a swept throw does carry one in the Momentum mode",
-        Math.abs(angular_momentum(3, 3)) > 100,
-        `${angular_momentum(3, 3).toFixed(1)}`,
+        "a swept throw carries turning force",
+        Math.abs(angular_momentum(3)) > 100,
+        `${angular_momentum(3).toFixed(1)}`,
     );
     check(
         "sweeping the other way turns it the other way",
-        angular_momentum(3, 3) * angular_momentum(3, -3) < 0,
+        angular_momentum(3) * angular_momentum(-3) < 0,
     );
 }
 
-console.log("modes: size by distance");
+console.log("size by distance");
 {
-    let game = make_game(4);
-    let tuning = MODES[4];
+    let game = make_game();
+    let tuning = TUNING;
 
     /** The radius of a fresh tier 5 element placed this far from the middle. */
     function measure(distance: number) {
@@ -428,33 +417,17 @@ console.log("modes: size by distance");
         "the mass does not change with the size",
         game.World.RigidBody2D[a].InverseMass === game.World.RigidBody2D[b].InverseMass,
     );
-
-    // Every other mode must be untouched.
-    let plain = make_game(0);
-    let ent = instantiate(plain, blueprint_element(plain, 5, [MODES[0].DeathRadius, 0], [0, 0]));
-    let before = plain.World.CollideCircle[ent].Radius;
-    sys_scale_by_radius(plain, STEP);
-    check(
-        "a mode which does not use it is left alone",
-        plain.World.CollideCircle[ent].Radius === before,
-    );
 }
 
-console.log("modes: sub-steps");
+console.log("physics: sub-steps");
 {
-    // The Momentum mode has a low drag, so bodies get fast. The sub-steps must
-    // keep the distance moved in one step under the smallest radius, or small
-    // elements pass through each other.
-    for (let mode = 0; mode < MODES.length; mode++) {
-        let tuning = MODES[mode];
-        let top_speed = tuning.CenterPull / tuning.Drag;
-        let reach = top_speed / (60 * tuning.SubSteps);
-        check(
-            `mode ${mode} (${tuning.Name}) cannot tunnel`,
-            reach < tuning.Radii[0],
-            `moves ${reach.toFixed(2)} against a radius of ${tuning.Radii[0]}`,
-        );
-    }
+    let top_speed = TUNING.CenterPull / TUNING.Drag;
+    let reach = top_speed / (60 * TUNING.SubSteps);
+    check(
+        "the final tuning cannot tunnel",
+        reach < TUNING.Radii[0],
+        `moves ${reach.toFixed(2)} against a radius of ${TUNING.Radii[0]}`,
+    );
 }
 
 console.log("chain");

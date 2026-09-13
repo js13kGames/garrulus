@@ -1,7 +1,7 @@
 import {instantiate} from "../../lib/game.js";
 import {float, set_seed} from "../../lib/random.js";
 import {Game} from "../game.js";
-import {MODES} from "../modes.js";
+import {TUNING} from "../modes.js";
 import {sys_camera2d} from "../systems/sys_camera2d.js";
 import {sys_resize2d} from "../systems/sys_resize2d.js";
 import {sys_transform2d} from "../systems/sys_transform2d.js";
@@ -10,15 +10,9 @@ import {blueprint_camera} from "./blu_camera.js";
 import {blueprint_cloud} from "./blu_cloud.js";
 import {blueprint_star} from "./blu_star.js";
 
-/**
- * Build the arena for one mode.
- *
- * @param game The game.
- * @param mode Index into MODES.
- */
-export function scene_stage(game: Game, mode: number) {
-    game.Mode = mode;
-    game.Tuning = MODES[mode];
+/** Build the arena for a new run. */
+export function scene_stage(game: Game) {
+    game.Tuning = TUNING;
 
     game.World = new World(game.World.Capacity);
     game.Score = 0;
@@ -35,7 +29,7 @@ export function scene_stage(game: Game, mode: number) {
     // Dead stars. They sit between the middle and the death ring, spread evenly
     // around it, so no side of the arena is easier than another. The seed is
     // fixed, so every run of a mode has the same board to learn.
-    set_seed(mode + 1);
+    set_seed(5);
     let count = game.Tuning.DeadStars;
     for (let i = 0; i < count; i++) {
         let angle = (i / count) * Math.PI * 2 + float(-0.3, 0.3);

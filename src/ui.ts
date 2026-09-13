@@ -1,82 +1,59 @@
 import {html} from "../lib/html.js";
-import {Game, load_best} from "./game.js";
-import {MODES} from "./modes.js";
+import {Game} from "./game.js";
 
 const PANEL = `position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:1.5vmin;text-align:center;
-    color:#fff;font:600 2.6vmin/1.4 system-ui,sans-serif;
-    background:#080614cc;backdrop-filter:blur(0.5vmin)`;
+    color:#fff;font:600 clamp(16px,2.6vmin,28px)/1.4 system-ui,sans-serif;
+    background:#080614cc;backdrop-filter:blur(0.5vmin);padding:5vmin;box-sizing:border-box`;
 
-const BUTTON = `padding:1.4vmin 4vmin;border-radius:9vmin;border:0;
+const BUTTON = `padding:clamp(14px,1.4vmin,22px) clamp(28px,4vmin,56px);border-radius:9vmin;border:0;
     background:#ff9ecd;color:#20123a;cursor:pointer;
-    font:700 2.6vmin system-ui,sans-serif`;
+    font:700 clamp(18px,2.6vmin,30px) system-ui,sans-serif;min-height:48px`;
 
-const CARD = `display:flex;flex-direction:column;gap:0.4vmin;align-items:center;
-    padding:1.4vmin 2vmin;border-radius:1.4vmin;border:0.2vmin solid #2a2350;
-    background:#120c2e;color:#fff;cursor:pointer;min-width:26vmin;
-    font:600 2vmin/1.3 system-ui,sans-serif`;
-
-/** Minutes and seconds, for judging a run against the 3 to 7 minute target. */
+/** Minutes and seconds. */
 function clock(seconds: number) {
     let whole = Math.floor(seconds);
     return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
-
-function mode_cards() {
-    return MODES.map(
-        (mode, index) => html`
-            <button style="${CARD}" onclick="play(${index})">
-                <span style="font:700 2.6vmin system-ui,sans-serif;color:#ff9ecd">
-                    ${mode.Name}
-                </span>
-                <span style="color:#cfc8ff">${mode.Blurb}</span>
-                <span style="color:#6f679c;font-size:1.7vmin">best ${load_best(index)}</span>
-            </button>
-        `,
-    );
 }
 
 export function App(game: Game) {
     if (game.PlayState === "title") {
         return html`
             <div style="${PANEL}">
-                <div style="font:800 9vmin/1 system-ui,sans-serif;color:#ff9ecd">garrulus</div>
-                <div style="max-width:58vmin;color:#cfc8ff">
+                <div style="font:800 clamp(56px,9vmin,104px)/1 system-ui,sans-serif;color:#ff9ecd">
+                    garrulus
+                </div>
+                <div style="max-width:620px;color:#cfc8ff">
                     Move to aim around the ring. Release to drop. Two of a kind become one.
                 </div>
-                <div
-                    style="display:flex;gap:1.5vmin;flex-wrap:wrap;justify-content:center;
-                    margin-top:1.5vmin"
-                >
-                    ${mode_cards()}
-                </div>
+                <button style="${BUTTON};margin-top:1.5vmin" onclick="play()">Play</button>
             </div>
         `;
     }
 
     return html`
         <div
-            style="position:absolute;top:2vmin;left:2.5vmin;color:#fff;
-            font:700 5vmin/1 system-ui,sans-serif;text-shadow:0 0 1.5vmin #000"
+            style="position:absolute;top:max(2vmin,env(safe-area-inset-top));left:max(2.5vmin,env(safe-area-inset-left));color:#fff;
+            font:700 clamp(28px,5vmin,58px)/1 system-ui,sans-serif;text-shadow:0 0 1.5vmin #000"
         >
             ${game.Score}
         </div>
         <div
-            style="position:absolute;top:8vmin;left:2.5vmin;color:#9f97d0;
-            font:600 2.6vmin/1 system-ui,sans-serif"
+            style="position:absolute;top:calc(max(2vmin,env(safe-area-inset-top)) + clamp(38px,6vmin,70px));left:max(2.5vmin,env(safe-area-inset-left));color:#9f97d0;
+            font:600 clamp(14px,2.6vmin,26px)/1 system-ui,sans-serif"
         >
             best ${game.BestScore}${game.Won ? " ★" : ""}
         </div>
         <div
-            style="position:absolute;top:2vmin;right:2.5vmin;text-align:right;color:#6f679c;
-            font:600 2.2vmin/1.5 system-ui,sans-serif"
+            style="position:absolute;top:max(2vmin,env(safe-area-inset-top));right:max(2.5vmin,env(safe-area-inset-right));text-align:right;color:#9f97d0;
+            font:600 clamp(14px,2.2vmin,23px)/1.5 system-ui,sans-serif"
         >
-            ${game.Tuning.Name}<br />${clock(game.RunTime)}
+            ${clock(game.RunTime)}
         </div>
         ${game.WinTime > 0
             ? html`<div
                   style="position:absolute;top:12vmin;left:0;right:0;text-align:center;
-                  color:#fff3c4;font:800 6vmin/1 system-ui,sans-serif;
+                  color:#fff3c4;font:800 clamp(32px,6vmin,68px)/1 system-ui,sans-serif;
                   text-shadow:0 0 3vmin #fff3c4"
               >
                   COSMIC UNICORN
@@ -84,18 +61,21 @@ export function App(game: Game) {
             : ""}
         ${game.PlayState === "over"
             ? html`<div style="${PANEL}">
-                  <div style="font:800 7vmin/1 system-ui,sans-serif;color:#ff7a8a">
+                  <div style="font:800 clamp(42px,7vmin,80px)/1 system-ui,sans-serif;color:#ff7a8a">
                       The ring broke
                   </div>
-                  <div style="font:700 6vmin/1 system-ui,sans-serif">${game.Score}</div>
-                  <div style="color:#9f97d0">
-                      best ${game.BestScore} &nbsp;·&nbsp; ${game.Tuning.Name} &nbsp;·&nbsp; lasted
-                      ${clock(game.RunTime)}
+                  <div style="font:700 clamp(36px,6vmin,68px)/1 system-ui,sans-serif">
+                      ${game.Score}
                   </div>
-                  <div style="display:flex;gap:1.5vmin;margin-top:1.5vmin">
-                      <button style="${BUTTON}" onclick="play(${game.Mode})">Again</button>
+                  <div style="color:#9f97d0">
+                      best ${game.BestScore} &nbsp;·&nbsp; lasted ${clock(game.RunTime)}
+                  </div>
+                  <div
+                      style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:1.5vmin"
+                  >
+                      <button style="${BUTTON}" onclick="play()">Again</button>
                       <button style="${BUTTON};background:#2a2350;color:#cfc8ff" onclick="title()">
-                          Modes
+                          Menu
                       </button>
                   </div>
               </div>`

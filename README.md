@@ -19,43 +19,21 @@ an oscillator.
 Move the pointer to aim around the ring. Release the button to drop. A touch
 does the same.
 
-In the "Momentum" and "Maelstrom" modes the *sweep* of the pointer matters as
-well as where it points. Flick the cloud around the ring before you release, and
-the element goes in sideways and turns the whole pile.
+In Maelstrom, the *sweep* of the pointer matters as well as where it points. Flick
+it around the ring before you release. The element goes in sideways and turns
+the whole pile.
 
-## The five modes
+## Maelstrom
 
-The game is a test bench, not a finished game. The first build was not tense
-enough: the arena is a full circle, so the mass could always spread outward, and
-the area grows with the square of the radius. `new-modes.md` proposes three ways
-to take that room away. Each is a mode here, plus one which runs all three at
-once.
+The game uses the final tuning from the mode tests. The arena is tight. Elements
+are lumpy and grind against each other. Two dead stars block the arena. A fast
+sweep spins the pile. Elements shrink near the middle and swell near the rim.
 
-| Mode | What it changes |
-|---|---|
-| **Classic** | Nothing. The first build, kept to measure the others against. |
-| **Claustrophobia** | The arena is 40 percent tighter, and the top tiers grow much faster. |
-| **Jagged Orbit** | Elements are lumpy, they grind instead of sliding, and three dead stars block the arena. |
-| **Momentum** | A sweep of the cloud spins the whole pile. Spin too hard and the rim throws itself out. |
-| **Maelstrom** | All three at once, plus: an element shrinks near the middle and swells near the rim. |
-
-A bot which drops as fast as the cooldown allows measures them like this. A
-person deliberates, so a real run is longer.
-
-| Mode | Drops | Seconds | Score | Top tier | Turn rate |
-|---|---|---|---|---|---|
-| Classic | 452 | 173 | 4717 | 8.8 | 0.02 |
-| Claustrophobia | 125 | 49 | 916 | 7.0 | 0.04 |
-| Jagged Orbit | 235 | 90 | 2448 | 8.5 | 0.05 |
-| Momentum | 236 | 91 | 2024 | 7.8 | 0.31 |
-| Maelstrom | 189 | 72 | 2033 | 8.5 | 0.30 |
-
-Every mode is only a row of numbers in `src/modes.ts`. No mode has code of its
-own. To change one, or to add one, edit that table.
+The final tuning is in `src/modes.ts`.
 
 ## What is in the source
 
-- `src/modes.ts` — the tuning of each mode. Start here.
+- `src/modes.ts` — the final game tuning. Start here.
 - `src/game.ts` — the `Game` class, the order of the systems, and the constants
   which are the same in every mode.
 - `src/world.ts` — the components.
@@ -106,10 +84,9 @@ decision 31.
     npm test
 
 This runs the format check, the type check, and `src/selftest.ts`. The self test
-drives the contact search, the solver, the merge rule, the breach timer, and
-every mode switch, with no browser. It also holds each mode against the rule
-that a body must not move further than the smallest radius in one step, so a new
-tuning cannot quietly break the physics.
+drives the contact search, solver, merge rule, breach timer, and final tuning.
+It also checks that a body cannot move farther than the smallest radius in one
+step, so a tuning change cannot quietly break the physics.
 
 ## Build it
 
@@ -124,12 +101,5 @@ Add `RELEASE=1` for the slow, smaller compression:
 
     make -C play index.zip RELEASE=1
 
-The size target of 13 KB is not being held while the modes are tested. Put the
-measured size in every commit message, as `AGENTS.md` asks.
-
-## What to do next
-
-The numbers above say which modes fit a three to seven minute run. They cannot
-say which one is fun. Play "Jagged Orbit" and "Maelstrom" one after the other:
-they are the closest pair, and the question between them is whether the spin
-adds to the puzzle or distracts from it.
+The shipping target is 13 KB. Put the measured size in every commit message, as
+`AGENTS.md` asks.

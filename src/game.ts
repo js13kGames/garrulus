@@ -1,6 +1,6 @@
 import {Game2D} from "../lib/game.js";
 import {Entity} from "../lib/world.js";
-import {MODES, Tuning} from "./modes.js";
+import {TUNING, Tuning} from "./modes.js";
 import {sys_animate_pop} from "./systems/sys_animate_pop.js";
 import {sys_camera2d} from "./systems/sys_camera2d.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
@@ -19,8 +19,7 @@ import {World} from "./world.js";
 
 export const WORLD_CAPACITY = 1024;
 
-// Constants which are the same in every mode. Everything a mode changes lives
-// in `modes.ts` instead; see `Game.Tuning`.
+// Constants which do not belong to the final game's tuning.
 
 /** Seconds a fresh element waits before it can merge again. */
 export const MERGE_COOLDOWN = 0.2;
@@ -57,10 +56,8 @@ export interface Contact {
 export class Game extends Game2D {
     World = new World(WORLD_CAPACITY);
 
-    /** The numbers of the mode being played. Set by `scene_stage`. */
-    Tuning: Tuning = MODES[0];
-    /** Index into MODES. Kept so the game over screen can offer the same mode again. */
-    Mode = 0;
+    /** The final game's tuning. */
+    Tuning: Tuning = TUNING;
 
     /** Touching pairs found this step. Only the first ContactCount entries are live. */
     Contacts: Array<Contact> = [];
@@ -68,7 +65,7 @@ export class Game extends Game2D {
 
     PlayState: "title" | "play" | "over" = "title";
     Score = 0;
-    BestScore = load_best(0);
+    BestScore = load_best();
     /** Set when two Cosmic Unicorns meet. Play goes on. */
     Won = false;
     /** Seconds left on the win banner. */
@@ -133,20 +130,10 @@ export class Game extends Game2D {
     }
 }
 
-/** The key the best score of a mode is kept under. */
-export function store_key(mode: number) {
-    return `garrulus${mode}`;
-}
-
-/**
- * Read the best score of a mode.
- *
- * A browser can refuse localStorage: private windows and blocked site data both
- * throw on access. The game must still start.
- */
-export function load_best(mode: number) {
+/** Read the best score. */
+export function load_best() {
     try {
-        return Number(localStorage[store_key(mode)]) || 0;
+        return Number(localStorage.garrulus ?? localStorage.garrulus4) || 0;
     } catch {
         return 0;
     }
