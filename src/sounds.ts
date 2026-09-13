@@ -85,3 +85,35 @@ export function sound_win(game: Game) {
         note(game.Audio, 64 + [0, 4, 7, 12, 16][i], 0.5, 0.12, "triangle", i * 0.07);
     }
 }
+
+/** Schedule a short-ahead, 120 BPM funk loop while a run is active. */
+export function sound_music(game: Game) {
+    if (game.PlayState !== "play") {
+        game.MusicNext = 0;
+        return;
+    }
+
+    let audio = game.Audio;
+    if (!game.MusicNext) {
+        game.MusicNext = audio.currentTime;
+    }
+
+    let bass = [40, 40, 43, 40, 47, 45, 43, 38];
+    while (game.MusicNext < audio.currentTime + 0.2) {
+        let step = game.MusicStep++ % 16;
+        let delay = Math.max(0, game.MusicNext - audio.currentTime);
+
+        note(audio, 82, 0.025, step % 4 === 2 ? 0.018 : 0.03, "square", delay);
+        if (step % 2 === 0) {
+            note(audio, bass[step / 2], 0.11, 0.035, "sawtooth", delay);
+        }
+        if (step === 0 || step === 7 || step === 10) {
+            note(audio, 28, 0.09, 0.06, "sine", delay);
+        }
+        if (step === 4 || step === 12) {
+            note(audio, 74, 0.045, 0.025, "square", delay);
+        }
+
+        game.MusicNext += 0.125;
+    }
+}

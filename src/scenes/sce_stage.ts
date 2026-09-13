@@ -20,7 +20,8 @@ export function scene_stage(game: Game) {
     game.WinTime = 0;
     game.RunTime = 0;
     game.HitStop = 0;
-    game.ShakeAmount = 0;
+    game.MusicNext = 0;
+    game.MusicStep = 0;
     game.BreachTime = 0;
 
     instantiate(game, blueprint_camera(game));

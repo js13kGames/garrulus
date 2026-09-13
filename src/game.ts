@@ -59,6 +59,10 @@ export class Game extends Game2D {
     /** The final game's tuning. */
     Tuning: Tuning = TUNING;
 
+    /** Next music step and its place in the 16-step funk loop. */
+    MusicNext = 0;
+    MusicStep = 0;
+
     /** Touching pairs found this step. Only the first ContactCount entries are live. */
     Contacts: Array<Contact> = [];
     ContactCount = 0;

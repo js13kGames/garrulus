@@ -11,11 +11,13 @@
  */
 
 import {Game} from "../game.js";
+import {sound_music} from "../sounds.js";
 import {App} from "../ui.js";
 
 let prev: string;
 
 export function sys_ui(game: Game, delta: number) {
+    sound_music(game);
     let next = App(game);
     if (next !== prev) {
         game.Ui.innerHTML = prev = next;
