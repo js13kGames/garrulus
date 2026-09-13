@@ -4,6 +4,9 @@
  * The numbers for the final Maelstrom game.
  */
 
+/** Multiplies every element size, including at the center. */
+export const ELEMENT_SCALE_MULTIPLIER = 3;
+
 /** Multiplies how strongly distance from the center changes an element's size. */
 export const DISTANCE_SCALE_MULTIPLIER = 3;
 
@@ -56,8 +59,9 @@ export const TUNING: Tuning = {
 
 export function scale_at(tuning: Tuning, reach: number) {
     return (
-        tuning.ScaleCenter +
-        (tuning.ScaleEdge - tuning.ScaleCenter) * DISTANCE_SCALE_MULTIPLIER * reach
+        ELEMENT_SCALE_MULTIPLIER *
+        (tuning.ScaleCenter +
+            (tuning.ScaleEdge - tuning.ScaleCenter) * DISTANCE_SCALE_MULTIPLIER * reach)
     );
 }
 
