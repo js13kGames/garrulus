@@ -29,7 +29,8 @@ The game uses the final tuning from the mode tests. The arena is tight. Elements
 are lumpy and grind against each other. Two dead stars block the arena. A fast
 sweep spins the pile. Elements shrink near the middle and swell near the rim.
 
-The final tuning is in `src/modes.ts`.
+The final tuning is in `src/modes.ts`. `DISTANCE_SCALE_MULTIPLIER` controls how
+strongly elements grow away from the center. It is set to `3`.
 
 ## What is in the source
 

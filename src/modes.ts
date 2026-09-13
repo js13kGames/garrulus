@@ -4,6 +4,9 @@
  * The numbers for the final Maelstrom game.
  */
 
+/** Multiplies how strongly distance from the center changes an element's size. */
+export const DISTANCE_SCALE_MULTIPLIER = 3;
+
 /** Radius for each tier, with the top half growing much faster. */
 const RADII = [0.4, 0.48, 0.58, 0.69, 0.83, 1.06, 1.36, 1.74, 2.23, 2.85];
 
@@ -50,6 +53,13 @@ export const TUNING: Tuning = {
     Bumps: 2,
     DeadStars: 2,
 };
+
+export function scale_at(tuning: Tuning, reach: number) {
+    return (
+        tuning.ScaleCenter +
+        (tuning.ScaleEdge - tuning.ScaleCenter) * DISTANCE_SCALE_MULTIPLIER * reach
+    );
+}
 
 /** Radius covered by the static star field. */
 export const MAX_CAMERA_RADIUS = TUNING.OrbitRadius + 1.5;

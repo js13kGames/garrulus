@@ -18,6 +18,7 @@
 import {Entity} from "../../lib/world.js";
 import {scale_parts} from "../components/com_collide_circle.js";
 import {Game} from "../game.js";
+import {scale_at} from "../modes.js";
 import {Has} from "../world.js";
 
 const QUERY = Has.LocalTransform2D | Has.CollideCircle | Has.Merge;
@@ -45,7 +46,7 @@ function update(game: Game, entity: Entity) {
     // ending anyway, and a shape which kept growing would push its neighbours
     // out with it and take the whole pile over the edge at once.
     let reach = Math.min(distance / tuning.DeathRadius, 1);
-    let factor = tuning.ScaleCenter + (tuning.ScaleEdge - tuning.ScaleCenter) * reach;
+    let factor = scale_at(tuning, reach);
 
     scale_parts(game.World.CollideCircle[entity], factor);
 }
