@@ -99,9 +99,76 @@ export function sys_draw(game: Game, delta: number) {
             draw_debug(game, ctx);
         }
     }
+
+    if (game.PlayState === "play") {
+        draw_merge_guide(game, ctx);
+    }
 }
 
 let debug_on = false;
+
+/** Show every two-of-a-kind merge as a color equation over the board. */
+function draw_merge_guide(game: Game, ctx: CanvasRenderingContext2D) {
+    let portrait = game.ViewportWidth < game.ViewportHeight;
+    let columns = portrait ? 5 : COLORS.length;
+    let rows = portrait ? 2 : 1;
+    let height = rows * 34 + 12;
+    let top = game.ViewportHeight - height;
+    let cell = game.ViewportWidth / columns;
+
+    ctx.resetTransform();
+    ctx.fillStyle = "#080614bb";
+    ctx.fillRect(0, top, game.ViewportWidth, height);
+    ctx.font = "700 10px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 1.5;
+
+    for (let tier = 0; tier < COLORS.length - 1; tier++) {
+        let row = Math.floor(tier / columns);
+        let x = ((tier % columns) + 0.5) * cell;
+        let y = top + 23 + row * 34;
+        let radius = Math.min(6, cell / 11);
+
+        ctx.fillStyle = COLORS[tier];
+        ctx.beginPath();
+        ctx.arc(x - 18, y - 4, radius, 0, TAU);
+        ctx.arc(x - 18, y + 4, radius, 0, TAU);
+        ctx.fill();
+
+        ctx.strokeStyle = "#cfc8ff";
+        ctx.beginPath();
+        ctx.moveTo(x - 9, y);
+        ctx.lineTo(x + 3, y);
+        ctx.lineTo(x, y - 3);
+        ctx.moveTo(x + 3, y);
+        ctx.lineTo(x, y + 3);
+        ctx.stroke();
+
+        ctx.fillStyle = COLORS[tier + 1];
+        ctx.beginPath();
+        ctx.arc(x + 12, y, radius * 1.2, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#cfc8ff";
+        ctx.fillText("2", x - 29, y);
+    }
+
+    let tier = COLORS.length - 1;
+    let row = Math.floor(tier / columns);
+    let x = ((tier % columns) + 0.5) * cell;
+    let y = top + 23 + row * 34;
+    ctx.fillStyle = COLORS[tier];
+    ctx.beginPath();
+    ctx.arc(x - 12, y - 4, 6, 0, TAU);
+    ctx.arc(x - 12, y + 4, 6, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = "#fff3c4";
+    ctx.font = "700 18px system-ui,sans-serif";
+    ctx.fillText("★", x + 10, y);
+    ctx.font = "700 10px system-ui,sans-serif";
+    ctx.fillStyle = "#cfc8ff";
+    ctx.fillText("2", x - 25, y);
+}
 
 function draw_debug(game: Game, ctx: CanvasRenderingContext2D) {
     // Every contact found this step, as a line between the two centers.
