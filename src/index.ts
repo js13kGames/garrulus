@@ -15,11 +15,6 @@ window.play = () => {
     game.Audio.resume();
 };
 
-// @ts-ignore
-window.title = () => {
-    game.PlayState = "title";
-};
-
 if (DEBUG) {
     // For poking at the running game from the console. esbuild is given
     // --define:DEBUG=false for the release, so terser drops this.

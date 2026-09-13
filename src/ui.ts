@@ -70,14 +70,7 @@ export function App(game: Game) {
                   <div style="color:#9f97d0">
                       best ${game.BestScore} &nbsp;·&nbsp; lasted ${clock(game.RunTime)}
                   </div>
-                  <div
-                      style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:1.5vmin"
-                  >
-                      <button style="${BUTTON}" onclick="play()">Again</button>
-                      <button style="${BUTTON};background:#2a2350;color:#cfc8ff" onclick="title()">
-                          Menu
-                      </button>
-                  </div>
+                  <button style="${BUTTON};margin-top:1.5vmin" onclick="play()">Again</button>
               </div>`
             : ""}
     `;
