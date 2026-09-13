@@ -12,13 +12,7 @@
 import {instantiate} from "../lib/game.js";
 import {Game} from "./game.js";
 import {BREACH_LIMIT} from "./game.js";
-import {
-    DISTANCE_SCALE_MULTIPLIER,
-    ELEMENT_SCALE_MULTIPLIER,
-    TUNING,
-    Tuning,
-    scale_at,
-} from "./modes.js";
+import {DISTANCE_SCALE_MULTIPLIER, TUNING, Tuning, scale_at} from "./modes.js";
 import {SCORES, TOP_TIER, blueprint_element} from "./scenes/blu_element.js";
 import {blueprint_star} from "./scenes/blu_star.js";
 import {sys_collide_circle} from "./systems/sys_collide_circle.js";
@@ -402,29 +396,20 @@ console.log("size by distance");
         `${middle.toFixed(2)} ${half.toFixed(2)} ${rim.toFixed(2)}`,
     );
     check(
-        "the size at the middle includes the general multiplier",
-        Math.abs(middle - scale_at(tuning, 0)) < 0.01,
-        `${middle.toFixed(3)} against ${scale_at(tuning, 0)}`,
+        "the size at the middle is unchanged",
+        Math.abs(middle - tuning.ScaleCenter) < 0.01,
+        `${middle.toFixed(3)} against ${tuning.ScaleCenter}`,
     );
     check(
-        "the size at the ring triples the configured distance effect",
+        "the size at the ring uses the configured distance effect",
         Math.abs(rim - scale_at(tuning, 1)) < 0.01,
         `${rim.toFixed(3)} against ${scale_at(tuning, 1)}`,
     );
     check(
-        "every element is three times larger",
-        ELEMENT_SCALE_MULTIPLIER === 3 &&
-            Math.abs(middle - tuning.ScaleCenter * ELEMENT_SCALE_MULTIPLIER) < 0.01,
-    );
-    check(
-        "the distance multiplier is three",
-        DISTANCE_SCALE_MULTIPLIER === 3 &&
+        "the distance multiplier is four",
+        DISTANCE_SCALE_MULTIPLIER === 4 &&
             Math.abs(
-                rim -
-                    middle -
-                    (tuning.ScaleEdge - tuning.ScaleCenter) *
-                        DISTANCE_SCALE_MULTIPLIER *
-                        ELEMENT_SCALE_MULTIPLIER,
+                rim - middle - (tuning.ScaleEdge - tuning.ScaleCenter) * DISTANCE_SCALE_MULTIPLIER,
             ) < 0.01,
     );
     check("halfway is halfway between the two", Math.abs(half - (middle + rim) / 2) < 0.01);

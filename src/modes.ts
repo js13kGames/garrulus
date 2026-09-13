@@ -4,11 +4,8 @@
  * The numbers for the final Maelstrom game.
  */
 
-/** Multiplies every element size, including at the center. */
-export const ELEMENT_SCALE_MULTIPLIER = 3;
-
 /** Multiplies how strongly distance from the center changes an element's size. */
-export const DISTANCE_SCALE_MULTIPLIER = 3;
+export const DISTANCE_SCALE_MULTIPLIER = 4;
 
 /** Radius for each tier, with the top half growing much faster. */
 const RADII = [0.4, 0.48, 0.58, 0.69, 0.83, 1.06, 1.36, 1.74, 2.23, 2.85];
@@ -59,9 +56,8 @@ export const TUNING: Tuning = {
 
 export function scale_at(tuning: Tuning, reach: number) {
     return (
-        ELEMENT_SCALE_MULTIPLIER *
-        (tuning.ScaleCenter +
-            (tuning.ScaleEdge - tuning.ScaleCenter) * DISTANCE_SCALE_MULTIPLIER * reach)
+        tuning.ScaleCenter +
+        (tuning.ScaleEdge - tuning.ScaleCenter) * DISTANCE_SCALE_MULTIPLIER * reach
     );
 }
 

@@ -24,6 +24,11 @@ import {Has} from "../world.js";
 const QUERY = Has.LocalTransform2D | Has.CollideCircle | Has.Merge;
 
 export function sys_scale_by_radius(game: Game, delta: number) {
+    let tuning = game.Tuning;
+    if (tuning.ScaleCenter === 1 && tuning.ScaleEdge === 1) {
+        return;
+    }
+
     for (let ent = 0; ent < game.World.Signature.length; ent++) {
         if ((game.World.Signature[ent] & QUERY) === QUERY) {
             update(game, ent);
